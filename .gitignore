@@ -9,3 +9,4 @@ dashboard/dist/
 .venv/
 models/
 logs/
+content/*.mp4

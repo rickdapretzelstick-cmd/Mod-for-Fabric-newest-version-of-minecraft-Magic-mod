@@ -26,14 +26,15 @@ This was built and tested in a **Linux sandbox with no GPU**, not on your Window
 | React/TypeScript dashboard builds, is served on localhost, and the Reject button works from the real UI (Chromium, no JS errors) | **Tested**. In-browser *video playback* not verified (the sandbox Chromium has no H.264 decoder; Chrome/Edge on Windows do). Approve/Revise buttons were exercised via the API, not clicked |
 | Known cosmetic issue | Thumbnail frame can include burned-in caption text; template titles read awkwardly |
 | **Ollama LLM** (idea/script quality) | **Untested** — code path written; fallback is a formulaic template writer |
-| **ComfyUI / Stable Diffusion 1.5 images** | **Untested** — workflow graph written, never executed |
+| **Local diffusion images (`diffusers` backend: Dreamshaper-8 + LCM-LoRA, 5 steps; CUDA if present, else CPU)** | **Tested on CPU** (~50 s/image; 7-scene video in ~9 min). CUDA path untested |
+| **ComfyUI backend** | **Untested** — workflow graph written, never executed. Auto order: ComfyUI → diffusers → procedural painter |
 | Windows scripts (`setup_windows.ps1`, `start_factory.bat`) | **Untested** |
 | **YouTube upload** | Tested only with a mock uploader up to the API boundary; **real upload untested** (needs your OAuth) |
 | `containsSyntheticMedia` upload flag | Included per YouTube API docs; unverified against the live API |
 | Analytics | Views/likes/comments via Data API (written, untested). Retention needs the YouTube Analytics API — not implemented |
 
 ### What it is *not*
-* **Visual quality is not cinematic when ComfyUI is unavailable.** The fallback painter produces flat, stylised
+* **Fallback only:** with neither ComfyUI nor `diffusers`+`torch` installed, the procedural painter is used. The fallback painter produces flat, stylised
   silhouette scenes with depth-layer parallax. It keeps the pipeline working; it will not hold viewers. Real quality
   depends on SD 1.5 via ComfyUI (untested) — and even then it is camera moves over stills, not video diffusion.
 * **No text-to-video diffusion** (AnimateDiff/SVD) is integrated. On a 12 GB card it is not integrated here yet, so animation = parallax camera moves, vignette, grain, transitions, ducked music, SFX.
@@ -43,6 +44,13 @@ This was built and tested in a **Linux sandbox with no GPU**, not on your Window
 * The template idea/script fallback repeats structures. Idea "scores" are a transparent heuristic, not audience prediction.
 * Earning ad revenue is not guaranteed; YouTube Partner Program thresholds apply and repetitive/low-effort AI content
   can be demonetised. The system only supports the legitimate parts: originality, disclosure, no fake engagement.
+
+### Sample output
+`python -m factory import-idea content/lighthouse_answered.json` then `python -m factory run <id>` renders a hand-authored 38 s story
+(`content/` holds the script). Observed flaws: face varies between scenes, some prompts are only partly followed, motion is slow
+camera pushes over stills (no video diffusion). Enable the diffusion backend with
+`pip install torch diffusers transformers accelerate peft` (CUDA wheels on your PC). Models: Dreamshaper-8 and LCM-LoRA, both OpenRAIL
+licences that permit commercial use — still verify the licences yourself before monetising. The safety checker is disabled for speed.
 
 ## Cost
 No paid APIs, no subscriptions. Ongoing cost is electricity (dashboard shows a per-video estimate from `config` watts × time)

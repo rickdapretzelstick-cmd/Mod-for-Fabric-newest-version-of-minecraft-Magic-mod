@@ -8,6 +8,7 @@ def main():
     i = sub.add_parser("ideas"); i.add_argument("-n", type=int, default=6)
     n = sub.add_parser("new"); n.add_argument("--idea", type=int)
     r = sub.add_parser("run"); r.add_argument("pid", type=int)
+    im = sub.add_parser("import-idea"); im.add_argument("file")
     s = sub.add_parser("stage"); s.add_argument("pid", type=int); s.add_argument("stage"); s.add_argument("--scenes", default="")
     a = ap.parse_args()
     db.init(); characters.ensure_defaults()
@@ -17,6 +18,14 @@ def main():
     elif a.cmd == "new":
         idea_id = a.idea or next(x["id"] for x in db.q("SELECT id FROM ideas WHERE status='new' ORDER BY score DESC"))
         print("project", pipeline.create_project(idea_id=idea_id))
+    elif a.cmd == "import-idea":
+        import time as _t
+        d = json.load(open(a.file)); ch = d.get("character")
+        if ch: characters.upsert(ch); d["character_id"] = ch["id"]
+        raw = {k: v for k, v in d.items() if k != "character"}
+        iid = db.run("INSERT INTO ideas(title,logline,hook,genre,character_id,score,score_detail,fingerprint,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                     (d["title"], d["logline"], d["hook"], d.get("genre", "story"), d.get("character_id"), 0, json.dumps({"raw": raw, "backend": "authored"}), ideas.fingerprint(d), "new", _t.time()))
+        print("project", pipeline.create_project(idea_id=iid))
     elif a.cmd == "run": print(pipeline.produce_inprocess(a.pid))
     elif a.cmd == "stage":
         sc = [int(x) for x in a.scenes.split(",") if x] or None

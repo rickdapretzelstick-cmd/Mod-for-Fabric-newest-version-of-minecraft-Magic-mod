@@ -50,7 +50,10 @@ def script(pid, scenes=None):
              (f"Then it made sense. {twist[0].upper() + twist[1:]}.", "calm revelation, soft light returning", "dawn", True),
              ("Some places don't keep secrets. They keep you, until you are ready to listen.", "wide final shot, the figure small against the horizon", mood, True)]
         return {"title": idea["title"], "scenes": [{"narration": n, "visual": v, "mood": m, "terrain": t, "show_character": sc} for n, v, m, sc in S]}
-    data, backend = llm.generate_json(prompt, "You are a precise screenwriter. Output only JSON.", fb)
+    if idea.get("scenes"):    # pre-authored script (hand-written or imported): use as-is
+        data, backend = {"title": idea["title"], "scenes": idea["scenes"]}, "authored"
+    else:
+        data, backend = llm.generate_json(prompt, "You are a precise screenwriter. Output only JSON.", fb)
     sc = data["scenes"][:8]
     if len(sc) < 4:
         raise RuntimeError("Script has too few scenes")
@@ -75,7 +78,7 @@ def storyboard(pid, scenes=None):
         shot = ["wide establishing shot", "medium shot, low angle", "close-up, shallow depth of field", "over-the-shoulder", "dutch angle",
                 "high angle", "silhouette against light"][i % 7]
         prompt = ", ".join(x for x in [characters.prompt_prefix(ch) if (ch and s.get("show_character", True)) else "", s["visual"], shot,
-                           "cinematic lighting, volumetric fog, 9:16 vertical composition, highly detailed"] if x)
+                           "cinematic lighting, volumetric fog, film still, 35mm, highly detailed"] if x)
         sfx = ["impact"] if i == 0 else (["riser"] if i == len(sc["scenes"]) - 3 else (["impact"] if i == len(sc["scenes"]) - 2 else []))
         row = {"n": n, "narration": s["narration"], "visual": s["visual"], "mood": s.get("mood", "night"), "terrain": s.get("terrain", "mountains"),
                "show_character": bool(s.get("show_character", True)), "camera": CAMERAS[i % len(CAMERAS)], "shot": shot, "sfx": sfx,
@@ -304,11 +307,11 @@ def assembly(pid, scenes=None):
         f.append(f"{prev}[{i}:v]xfade=transition={'fade' if i % 2 else 'fadeblack'}:duration={TRANSITION}:offset={off:.3f}[x{i}]")
         prev = f"[x{i}]"; acc = off + tl["durations"][i]
     up = prof["render_w"] != o["width"]
-    post = (f"scale={o['width']}:{o['height']}:flags=lanczos," if up else "") + "vignette=PI/5,noise=alls=5:allf=t,format=yuv420p,subtitles=subs.ass"
+    post = (f"scale={o['width']}:{o['height']}:flags=lanczos," if up else "") + "vignette=PI/5,noise=alls=2:allf=t,format=yuv420p,subtitles=subs.ass"
     f.append(f"{prev}{post}[v]")
     out = pdir(pid) / "final.mp4"; tmp = pdir(pid) / "final.partial.mp4"
     util.ffmpeg(args + ["-filter_complex", ";".join(f), "-map", "[v]", "-map", f"{n}:a", "-r", o["fps"], "-c:v", "libx264", "-preset", "medium",
-                        "-crf", "18", "-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-t", f"{tl['total']:.3f}", "-movflags", "+faststart", tmp.name],
+                        "-crf", "23", "-maxrate", "8M", "-bufsize", "16M", "-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-t", f"{tl['total']:.3f}", "-movflags", "+faststart", tmp.name],
                 cwd=str(pdir(pid)))
     tmp.replace(out)
     sha = util.sha256(out)

@@ -1,0 +1,73 @@
+{
+  "title": "The Lighthouse That Answered",
+  "logline": "Nell rows across a frozen sea to a lighthouse dark for forty years, and discovers what her missing mother has been doing there all along.",
+  "hook": "For forty years, the lighthouse at Harrow Point has been dark. Last night, it blinked.",
+  "genre": "mystery",
+  "place": "an abandoned lighthouse on a frozen sea",
+  "time_of_day": "dusk",
+  "character": {
+    "id": "char_nell",
+    "name": "Nell Harrow",
+    "appearance": "young woman in her twenties, short dark hair, determined eyes, carrying an old brass lantern",
+    "clothing": "red hooded oilskin coat, dark boots",
+    "colors": {
+      "cloth": "#b3261e",
+      "accent": "#ffc857"
+    },
+    "face": "pale freckled face, strong brow",
+    "personality": "stubborn, brave, quietly hopeful",
+    "style": "cinematic photo, moody, volumetric fog, shallow depth of field",
+    "seed": 7
+  },
+  "scenes": [
+    {
+      "narration": "For forty years, the lighthouse at Harrow Point has been dark. Last night, it blinked.",
+      "visual": "enormous dark lighthouse on a frozen sea at dusk, a single faint red light flickering in thick fog, no people",
+      "mood": "dusk",
+      "terrain": "mountains",
+      "show_character": false
+    },
+    {
+      "narration": "Nell rowed out across the ice alone, because the light was blinking in her mother's code.",
+      "visual": "small figure in a red hooded coat dragging a boat across cracked ice toward the distant lighthouse, holding a brass lantern, wide shot",
+      "mood": "dusk",
+      "terrain": "mountains",
+      "show_character": true
+    },
+    {
+      "narration": "Inside, every step upward matched a name carved into the wall. Hers was waiting at the top.",
+      "visual": "narrow spiral stone staircase inside a lighthouse, hundreds of names carved into the walls, warm lantern glow, a woman in a red coat climbing",
+      "mood": "ember",
+      "terrain": "city",
+      "show_character": true
+    },
+    {
+      "narration": "In the lamp room, the ancient lens turned by itself, and the fog began to pull back.",
+      "visual": "giant glowing fresnel lens in a lighthouse lamp room, golden beams cutting through fog, woman in red coat silhouetted, awe",
+      "mood": "ember",
+      "terrain": "city",
+      "show_character": true
+    },
+    {
+      "narration": "Beneath the ice, thousands of lights blinked awake. Ships, lost for decades, waiting to be seen.",
+      "visual": "aerial view of a frozen sea at night, thousands of glowing ship lanterns visible beneath the ice, a lighthouse beam sweeping across, magical, epic scale",
+      "mood": "night",
+      "terrain": "mountains",
+      "show_character": false
+    },
+    {
+      "narration": "Her mother never vanished. She kept the light burning, so the lost could find their way home.",
+      "visual": "woman in red coat standing in lamp room, a warm golden ghostly figure of an older woman resting a hand on her shoulder, tears, emotional, soft light",
+      "mood": "dawn",
+      "terrain": "city",
+      "show_character": true
+    },
+    {
+      "narration": "Now Nell lights it every night. And every night, someone comes home.",
+      "visual": "lighthouse beaming warm light at sunrise across calm water, old wooden ships emerging from the mist toward harbor, hopeful, wide cinematic shot",
+      "mood": "dawn",
+      "terrain": "mountains",
+      "show_character": false
+    }
+  ]
+}

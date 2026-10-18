@@ -37,7 +37,16 @@
     "cfg": 7.0,
     "sampler": "dpmpp_2m",
     "scheduler": "karras",
-    "timeout_s": 600
+    "timeout_s": 600,
+    "diffusers": {
+      "model": "Lykon/dreamshaper-8",
+      "lora": "latent-consistency/lcm-lora-sdv1-5",
+      "steps": 5,
+      "guidance": 1.5,
+      "w": 448,
+      "h": 768,
+      "cache_dir": "models/hf"
+    }
   },
   "tts": {
     "backend": "auto",

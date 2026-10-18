@@ -8,7 +8,7 @@ import requests
 from PIL import Image, ImageDraw, ImageFilter
 from .. import config
 
-NEG = "text, watermark, logo, blurry, deformed, extra limbs, lowres, bad anatomy"
+NEG = "text, watermark, logo, caption, blurry, deformed, extra limbs, extra fingers, lowres, bad anatomy, cartoon"
 
 
 def comfy_available(url):
@@ -188,10 +188,12 @@ def flatten(layers: dict) -> Image.Image:
 def generate_scene(spec: dict, seed: int, out_dir: Path, name: str, w: int, h: int, prompt: str, backend: str):
     """Writes {name}.png (flattened) and, for procedural scenes, {name}_<layer>.png for parallax."""
     s = config.load_settings()["image"]
-    use_comfy = backend == "comfyui"
-    if use_comfy:
+    if backend == "comfyui":
         comfy_generate(prompt, seed, out_dir / f"{name}.png")
         return "comfyui"
+    if backend == "diffusers":
+        diffusers_generate(prompt, seed, out_dir / f"{name}.png", w, h)
+        return "diffusers"
     layers = paint_layers(spec, w, h, seed)
     for k, im in layers.items():
         im.save(out_dir / f"{name}_{k}.png")
@@ -199,10 +201,42 @@ def generate_scene(spec: dict, seed: int, out_dir: Path, name: str, w: int, h: i
     return "procedural"
 
 
+_DIFF = {}
+
+
+def diffusers_available():
+    try:
+        import torch, diffusers, peft   # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def diffusers_generate(prompt, seed, out_path: Path, w, h):
+    """Local diffusion via Hugging Face diffusers: SD1.5-class checkpoint + LCM-LoRA (4-5 steps). CUDA if present, else CPU.
+    Pipeline stays loaded for the duration of the (subprocess) stage, then is freed with the process."""
+    import torch
+    from diffusers import StableDiffusionPipeline, LCMScheduler
+    from PIL import Image
+    d = config.load_settings()["image"]["diffusers"]
+    if "pipe" not in _DIFF:
+        cuda = torch.cuda.is_available()
+        cache = str(config.ROOT / d["cache_dir"])
+        pipe = StableDiffusionPipeline.from_pretrained(d["model"], torch_dtype=torch.float16 if cuda else torch.float32, safety_checker=None, cache_dir=cache)
+        pipe.load_lora_weights(d["lora"], cache_dir=cache); pipe.fuse_lora()
+        pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
+        _DIFF["pipe"] = pipe.to("cuda" if cuda else "cpu")
+    gen = torch.Generator().manual_seed(int(seed) % (2**31))
+    im = _DIFF["pipe"](prompt, negative_prompt=NEG, num_inference_steps=d["steps"], guidance_scale=d["guidance"], width=d["w"], height=d["h"], generator=gen).images[0]
+    im.resize((w, h), Image.LANCZOS).save(out_path)
+
+
 def pick_backend():
     s = config.load_settings()["image"]
-    if s["backend"] == "comfyui":
+    if s["backend"] in ("comfyui", "diffusers", "procedural"):
+        return s["backend"]
+    if comfy_available(s["comfyui_url"]):
         return "comfyui"
-    if s["backend"] == "auto" and comfy_available(s["comfyui_url"]):
-        return "comfyui"
+    if diffusers_available():
+        return "diffusers"
     return "procedural"
