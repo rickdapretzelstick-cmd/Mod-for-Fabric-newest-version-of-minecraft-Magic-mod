@@ -56,7 +56,7 @@ def draw_rig(cloth, accent, pose, t=0.0, ghost=False):
     pop = p["hat_pop"]; hrot = p["hat_rot"]
     d.polygon([P(-17, -88 - pop), P(17, -88 - pop), P(hrot * 20 + 3, -123 - pop + abs(hrot) * 7)], fill=cloth + (255,))
     d.polygon([P(-17, -88 - pop), P(-2, -88 - pop), P(hrot * 20 + 3, -123 - pop + abs(hrot) * 7)], fill=_shade(cloth, .8) + (255,))
-    bx0, by0 = P(-19.5, -90 - pop); bx1, by1 = P(19.5, -86 - pop); d.ellipse([bx0, by0, bx1, by1], fill=accent + (255,))
+    bx0, by0 = P(-19.5, -90 - pop); bx1, by1 = P(19.5, -86 - pop); d.ellipse([min(bx0, bx1), min(by0, by1), max(bx0, bx1), max(by0, by1)], fill=accent + (255,))
     # FX (drawn upright around the head)
     ftop = -128 - pop
     ages = p.get("fx_age", {})
