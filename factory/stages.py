@@ -246,7 +246,7 @@ def animation(pid, scenes=None):
     d = pdir(pid) / "scenes"; cache = util.jread(d / "clip_cache.json", {}); made = 0
     for i, s in enumerate(sb["scenes"]):
         n = s["n"]; clip = d / f"s{n:02d}.mp4"
-        k = util.key(s["camera"], s.get("action"), s.get("char_x"), s.get("char_scale"), "rig2", round(tl["durations"][i], 3), W, H, fps, (d / f"s{n:02d}.png").stat().st_mtime_ns)
+        k = util.key(s["camera"], s.get("action"), s.get("char_x"), s.get("char_scale"), "rig3", round(tl["durations"][i], 3), W, H, fps, (d / f"s{n:02d}.png").stat().st_mtime_ns)
         if cache.get(str(n)) == k and clip.exists():
             continue
         names = [("sky", .0), ("far", .15), ("mid", .4), ("fog", .55), ("char", .75), ("near", 1.0)]

@@ -61,7 +61,7 @@ def draw_rig(cloth, accent, pose, t=0.0, ghost=False):
     ftop = -128 - pop
     ages = p.get("fx_age", {})
     for fx in p["fx"]:
-        age = ages.get(fx, .25); alpha = min(1.0, age / .07) * min(1.0, max(0.0, (.5 - age) / .12))
+        lim = p.get("fx_lim", {}).get(fx, .5); age = ages.get(fx, .25); alpha = min(1.0, age / .07) * min(1.0, max(0.0, (lim - age) / .15))
         if alpha <= .02:
             continue
         layer = Image.new("RGBA", (CS, CS), (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
@@ -71,7 +71,7 @@ def draw_rig(cloth, accent, pose, t=0.0, ghost=False):
                 a = t * 6 + k * 2.09; x, y = P(math.cos(a) * 15, ftop - 2 + math.sin(a) * 3); s_ = 2.8 * R * pop_s
                 d.polygon([(x, y - s_), (x + s_ * .35, y - s_ * .35), (x + s_, y), (x + s_ * .35, y + s_ * .35), (x, y + s_), (x - s_ * .35, y + s_ * .35), (x - s_, y), (x - s_ * .35, y - s_ * .35)], fill=(255, 236, 120, 255))
         elif fx == "sweat":
-            u = min(1.0, age / .5); x, y = P(20, -96 + u * 12); r_ = 2.3 * R * pop_s
+            u = min(1.0, age / lim); x, y = P(21, -97 + u * 16); r_ = 2.9 * R * pop_s
             d.polygon([(x, y - r_ * 1.9), (x - r_, y), (x + r_, y)], fill=(150, 210, 255, 255)); d.ellipse([x - r_, y - r_, x + r_, y + r_], fill=(150, 210, 255, 255))
         elif fx == "exclaim":
             x, y = P(0, ftop - 5); f = util.font(int(19 * R * pop_s)); d.text((x, y), "!", font=f, fill=(255, 70, 60, 255), anchor="mm", stroke_width=int(R * .8), stroke_fill=(255, 255, 255, 255))
@@ -117,10 +117,10 @@ def slip(t, dur):
     """Glides in upright and unbothered, freezes, topples like a plank, pops back up, tips hat, marches on."""
     p = default_pose(); u = t / dur
     if u < .34:
-        q = u / .34; p.update(dx=lerp(-.95, -.1, ease(q)), rot=3 * math.sin(q * 5), arm_l=75, arm_r=75, hat_rot=.2, look=(1, 0))
+        q = u / .34; p.update(dx=lerp(-.95, -.1, ease(q)), rot=3 * math.sin(q * 5), arm_l=75, arm_r=75, hat_rot=.2, look=(1, 0), fx=["sweat"] if q > .55 else [])
     elif u < .5:
         q = (u - .34) / .16; fall = ease(clamp((q - .25) / .75)) ** 1.6
-        p.update(dx=-.1 + .15 * fall, dy=-.34 * fall + .06 * math.sin(math.pi * clamp(q * 1.4)), rot=-92 * fall, arm_l=75 - 55 * fall, arm_r=75 - 55 * fall, hat_rot=.2, fx=["exclaim"] if q < .45 else [])
+        p.update(dx=-.1 + .15 * fall, dy=-.34 * fall + .06 * math.sin(math.pi * clamp(q * 1.4)), rot=-92 * fall, arm_l=75 - 55 * fall, arm_r=75 - 55 * fall, hat_rot=.2, fx=(["exclaim"] if q < .45 else []) + (["sweat"] if q < .6 else []))
     elif u < .66:
         p.update(dx=.05, dy=-.34, rot=-92 + .8 * math.sin(t * 9), arm_l=20, arm_r=20, hat_rot=.1 + .1 * math.sin(t * 7), fx=["sweat"])
     elif u < .76:
@@ -136,9 +136,9 @@ def stair_hop(t, dur):
     """Determined little hops up the stairs, a tired pause with one sweat drop, then a stiff little double-take."""
     p = default_pose(); u = t / dur
     if u < .55:
-        prog = u / .55; dy, sx, sy = hop(t, lerp(.46, .6, prog), .1); p.update(dx=lerp(-.6, .5, prog), dy=dy + lerp(0, .9, prog), sx=sx, sy=sy, arm_l=40 + 22 * math.sin(t * 12), arm_r=40 - 22 * math.sin(t * 12), look=(.8, -.3), hat_rot=-.15 * math.sin(t * 12), fx=["sweat"] if u > .45 else [])
+        prog = u / .55; dy, sx, sy = hop(t, lerp(.46, .6, prog), .1); p.update(dx=lerp(-.6, .5, prog), dy=dy + lerp(0, .9, prog), sx=sx, sy=sy, arm_l=40 + 22 * math.sin(t * 12), arm_r=40 - 22 * math.sin(t * 12), look=(.8, -.3), hat_rot=-.15 * math.sin(t * 12), fx=["sweat"] if (u > .3 and (t % 1.2) < .85) else [])
     elif u < .76:
-        p.update(dx=.5, dy=.9, sy=.95 + .02 * math.sin(t * 7), sx=1.03, rot=2 * math.sin(t * 4), arm_l=8, arm_r=8, hat_rot=-.6, look=(0, 1), fx=["sweat"] if u < .62 else [])
+        p.update(dx=.5, dy=.9, sy=.95 + .02 * math.sin(t * 7), sx=1.03, rot=2 * math.sin(t * 4), arm_l=8, arm_r=8, hat_rot=-.6, look=(0, 1), fx=["sweat"] if (t % 1.2) < .85 else [])
     else:
         q = (u - .76) / .24; j = clamp(q * 4); dy, _, _ = hop(max(0, q - .08), .5, .12)
         p.update(dx=.5 - .06 * ease(j), dy=.9 + dy, rot=-6 * math.sin(clamp(q * 3) * math.pi), arm_l=60, arm_r=60, hat_rot=.5 * math.sin(math.pi * clamp(q * 2)), hat_pop=5 * math.sin(math.pi * clamp(q * 2)), look=(-1, -.2), fx=["exclaim"] if q < .4 else [])
@@ -153,7 +153,7 @@ def startle_spin(t, dur):
     elif u < .6:
         q = (u - .3) / .3; air = 4 * q * (1 - q); p.update(dy=.7 * air, sy=1 + .14 * math.sin(math.pi * q), sx=1 - .06 * math.sin(math.pi * q), rot=-360 * ease(q), arm_l=35, arm_r=35, hat_pop=9 * math.sin(math.pi * q), hat_rot=lerp(-.6, .6, q), fx=["exclaim"] if q < .3 else [])
     else:
-        q = (u - .6) / .4; land = .18 * math.sin(math.pi * clamp(q * 4)) * (1 if q < .25 else 0); p.update(sy=1 - land, sx=1 + land, rot=5 * math.sin(t * 8) * max(0, 1 - q * 1.6), arm_l=20, arm_r=20, hat_rot=.3 * math.sin(t * 6) * (1 - q), fx=["stars"] if q < .2 else [])
+        q = (u - .6) / .4; land = .18 * math.sin(math.pi * clamp(q * 4)) * (1 if q < .25 else 0); p.update(sy=1 - land, sx=1 + land, rot=5 * math.sin(t * 8) * max(0, 1 - q * 1.6), arm_l=20, arm_r=20, hat_rot=.3 * math.sin(t * 6) * (1 - q), fx=(["stars"] if q < .2 else []) + (["sweat"] if .15 < q < .85 else []))
     return p
 
 
@@ -165,7 +165,7 @@ def gawk(t, dur):
     elif u < .6:
         dy, sx, sy = hop(t, .42, .09); p.update(dy=dy, sx=sx, sy=sy, look=(0, 1), arm_l=60 + 18 * math.sin(t * 14), arm_r=60 - 18 * math.sin(t * 14), rot=6)
     elif u < .82:
-        q = (u - .6) / .22; p.update(rot=lerp(6, 28, ease(q)), dx=lerp(0, .18, ease(q)), arm_l=lerp(60, 105, q), arm_r=lerp(60, 105, q), look=(0, 1), foot_l=lerp(0, 3, q), fx=["sweat"] if q > .55 else [])
+        q = (u - .6) / .22; p.update(rot=lerp(6, 28, ease(q)), dx=lerp(0, .18, ease(q)), arm_l=lerp(60, 105, q), arm_r=lerp(60, 105, q), look=(0, 1), foot_l=lerp(0, 3, q), fx=["sweat"] if q > .3 else [])
     else:
         q = (u - .82) / .18; p.update(rot=lerp(28, 0, ease_out_back(q)), dx=lerp(.18, 0, ease(q)), sy=1 + .1 * math.sin(math.pi * q), sx=1 - .04 * math.sin(math.pi * q), arm_l=25, arm_r=165, fx=["sparkle"] if q > .5 else [], hat_rot=-.2)
     return p
@@ -175,7 +175,7 @@ def cry_hop(t, dur):
     """Stoic trembling (barely holding it together), then turns, opens arms and does two small happy hops."""
     p = default_pose(); u = t / dur
     if u < .5:
-        sh = math.sin(t * 30); p.update(dx=.008 * sh, rot=1.4 * sh, sy=1 - .012 * abs(sh), arm_l=12, arm_r=12, hat_rot=-.4 + .05 * sh, look=(.7, .3), fx=["sweat"] if u > .38 else [])
+        sh = math.sin(t * 30); p.update(dx=.008 * sh, rot=1.4 * sh, sy=1 - .012 * abs(sh), arm_l=12, arm_r=12, hat_rot=-.4 + .05 * sh, look=(.7, .3), fx=["sweat"] if (u > .08 and (t % 1.2) < .85) else [])
     elif u < .62:
         q = (u - .5) / .12; p.update(arm_l=lerp(12, 100, ease(q)), arm_r=lerp(12, 100, ease(q)), sy=1 + .08 * math.sin(math.pi * q), hat_rot=lerp(-.4, .2, q), look=(1, 0), fx=["exclaim"] if q < .5 else [])
     else:
@@ -201,17 +201,17 @@ def _brief(fn):
     def wrapped(t, dur):
         p = fn(t, dur); ages = {}
         for f in p["fx"]:
-            age = 0.0
-            for k in range(1, 13):
+            lim = 1.0 if f == "sweat" else .5; age = 0.0
+            for k in range(1, 23):
                 tt = t - .05 * k
                 if tt < 0 or f not in fn(tt, dur)["fx"]:
                     break
                 age = .05 * k
             else:
-                age = .6
-            if age <= .5:
+                age = lim + .1
+            if age <= lim:
                 ages[f] = age
-        p["fx"] = list(ages); p["fx_age"] = ages
+        p["fx"] = list(ages); p["fx_age"] = ages; p["fx_lim"] = {f: (1.0 if f == "sweat" else .5) for f in ages}
         return p
     return wrapped
 
