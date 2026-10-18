@@ -11,7 +11,7 @@ ideas → script → storyboard → characters → visuals → voiceover → ani
 
 ## Honest status — read this first
 
-This was built and tested in a **Linux sandbox with no GPU**, not on your Windows PC. Nothing was run on the GTX 1080 Ti.
+This was built and tested in a **Linux sandbox with no GPU**, not on your Windows PC. Nothing was run on your RTX 5070.
 
 | Area | Status |
 |---|---|
