@@ -46,13 +46,33 @@
       "w": 448,
       "h": 768,
       "cache_dir": "models/hf"
+    },
+    "style": "minimal",
+    "styles": {
+      "minimal": {
+        "prefix": "minimal flat illustration, simple shapes, bold clean silhouette, limited color palette, soft gradient background, uncluttered, lots of negative space",
+        "suffix": "graphic poster art, single clear subject",
+        "negative": "busy, cluttered, detailed background, photorealistic, text, watermark, extra people, deformed"
+      },
+      "cinematic": {
+        "prefix": "",
+        "suffix": "cinematic lighting, volumetric fog, film still, 35mm, highly detailed",
+        "negative": ""
+      }
     }
   },
   "tts": {
     "backend": "auto",
     "piper_exe": "piper",
     "piper_model": "models/piper/en_US-lessac-medium.onnx",
-    "speed": 1.0
+    "speed": 1.0,
+    "kokoro": {
+      "model": "models/kokoro/kokoro-v1.0.onnx",
+      "voices": "models/kokoro/voices-v1.0.bin",
+      "voice": "bm_george",
+      "speed": 1.08,
+      "lang": "en-gb"
+    }
   },
   "jobs": {
     "max_attempts": 3,

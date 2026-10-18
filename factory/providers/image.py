@@ -186,13 +186,14 @@ def flatten(layers: dict) -> Image.Image:
 
 
 def generate_scene(spec: dict, seed: int, out_dir: Path, name: str, w: int, h: int, prompt: str, backend: str):
+    neg = spec.get("negative") or NEG
     """Writes {name}.png (flattened) and, for procedural scenes, {name}_<layer>.png for parallax."""
     s = config.load_settings()["image"]
     if backend == "comfyui":
         comfy_generate(prompt, seed, out_dir / f"{name}.png")
         return "comfyui"
     if backend == "diffusers":
-        diffusers_generate(prompt, seed, out_dir / f"{name}.png", w, h)
+        diffusers_generate(prompt, seed, out_dir / f"{name}.png", w, h, neg)
         return "diffusers"
     layers = paint_layers(spec, w, h, seed)
     for k, im in layers.items():
@@ -212,7 +213,7 @@ def diffusers_available():
         return False
 
 
-def diffusers_generate(prompt, seed, out_path: Path, w, h):
+def diffusers_generate(prompt, seed, out_path: Path, w, h, negative=NEG):
     """Local diffusion via Hugging Face diffusers: SD1.5-class checkpoint + LCM-LoRA (4-5 steps). CUDA if present, else CPU.
     Pipeline stays loaded for the duration of the (subprocess) stage, then is freed with the process."""
     import torch
@@ -227,7 +228,7 @@ def diffusers_generate(prompt, seed, out_path: Path, w, h):
         pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
         _DIFF["pipe"] = pipe.to("cuda" if cuda else "cpu")
     gen = torch.Generator().manual_seed(int(seed) % (2**31))
-    im = _DIFF["pipe"](prompt, negative_prompt=NEG, num_inference_steps=d["steps"], guidance_scale=d["guidance"], width=d["w"], height=d["h"], generator=gen).images[0]
+    im = _DIFF["pipe"](prompt, negative_prompt=negative, num_inference_steps=d["steps"], guidance_scale=d["guidance"], width=d["w"], height=d["h"], generator=gen).images[0]
     im.resize((w, h), Image.LANCZOS).save(out_path)
 
 

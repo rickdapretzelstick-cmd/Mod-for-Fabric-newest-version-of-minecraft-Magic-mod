@@ -26,6 +26,7 @@ This was built and tested in a **Linux sandbox with no GPU**, not on your Window
 | React/TypeScript dashboard builds, is served on localhost, and the Reject button works from the real UI (Chromium, no JS errors) | **Tested**. In-browser *video playback* not verified (the sandbox Chromium has no H.264 decoder; Chrome/Edge on Windows do). Approve/Revise buttons were exercised via the API, not clicked |
 | Known cosmetic issue | Thumbnail frame can include burned-in caption text; template titles read awkwardly |
 | **Ollama LLM** (idea/script quality) | **Untested** — code path written; fallback is a formulaic template writer |
+| **Kokoro TTS (`bm_george` default, mastered with EQ/compression/loudness norm)** | **Tested** (renders, passes QC); I can't listen, so voice quality is judged by you. 53 voices available; change under `tts.kokoro.voice` |
 | **Local diffusion images (`diffusers` backend: Dreamshaper-8 + LCM-LoRA, 5 steps; CUDA if present, else CPU)** | **Tested on CPU** (~50 s/image; 7-scene video in ~9 min). CUDA path untested |
 | **ComfyUI backend** | **Untested** — workflow graph written, never executed. Auto order: ComfyUI → diffusers → procedural painter |
 | Windows scripts (`setup_windows.ps1`, `start_factory.bat`) | **Untested** |
@@ -49,7 +50,7 @@ This was built and tested in a **Linux sandbox with no GPU**, not on your Window
 `python -m factory import-idea content/lighthouse_answered.json` then `python -m factory run <id>` renders a hand-authored 38 s story
 (`content/` holds the script). Observed flaws: face varies between scenes, some prompts are only partly followed, motion is slow
 camera pushes over stills (no video diffusion). Enable the diffusion backend with
-`pip install torch diffusers transformers accelerate peft` (CUDA wheels on your PC). Models: Dreamshaper-8 and LCM-LoRA, both OpenRAIL
+`pip install -r requirements-diffusion.txt kokoro-onnx soundfile` (Kokoro model files go in `models/kokoro/`, see below) (CUDA wheels on your PC). Models: Dreamshaper-8 and LCM-LoRA, both OpenRAIL
 licences that permit commercial use — still verify the licences yourself before monetising. The safety checker is disabled for speed.
 
 ## Cost
@@ -107,3 +108,8 @@ and each stage runs in its own subprocess.
 * Disk guard refuses new stages below `jobs.min_free_disk_gb`.
 * Logs: `data/logs/job_<id>.log`; errors also in the DB and the System tab.
 * Switching quality or models: Settings tab or `config/settings.json`.
+
+## Voice (Kokoro)
+Download `kokoro-v1.0.onnx` and `voices-v1.0.bin` from https://github.com/thewh1teagle/kokoro-onnx/releases (model-files-v1.0) into `models/kokoro/`.
+The voice is `tts.kokoro.voice` in `config/settings.json` (e.g. `bm_george`, `am_michael`, `af_heart`); Piper is the fallback.
+Image look: `image.style` = `minimal` (default, simple flat illustration) or `cinematic`.

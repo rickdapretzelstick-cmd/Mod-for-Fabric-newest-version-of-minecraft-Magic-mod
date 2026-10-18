@@ -77,12 +77,15 @@ def storyboard(pid, scenes=None):
         n = s["n"]
         shot = ["wide establishing shot", "medium shot, low angle", "close-up, shallow depth of field", "over-the-shoulder", "dutch angle",
                 "high angle", "silhouette against light"][i % 7]
-        prompt = ", ".join(x for x in [characters.prompt_prefix(ch) if (ch and s.get("show_character", True)) else "", s["visual"], shot,
-                           "cinematic lighting, volumetric fog, film still, 35mm, highly detailed"] if x)
+        img = config.load_settings()["image"]; sty = img["styles"].get(img["style"], img["styles"]["cinematic"])
+        cp = characters.prompt_prefix(ch) if (ch and s.get("show_character", True)) else ""
+        if img["style"] == "minimal" and ch:   # keep the character, drop its photographic style words
+            cp = f"{ch['name']}, {ch['appearance']}, wearing {ch['clothing']}"
+        prompt = ", ".join(x for x in [sty["prefix"], cp, s["visual"], shot if img["style"] != "minimal" else "", sty["suffix"]] if x)
         sfx = ["impact"] if i == 0 else (["riser"] if i == len(sc["scenes"]) - 3 else (["impact"] if i == len(sc["scenes"]) - 2 else []))
         row = {"n": n, "narration": s["narration"], "visual": s["visual"], "mood": s.get("mood", "night"), "terrain": s.get("terrain", "mountains"),
                "show_character": bool(s.get("show_character", True)), "camera": CAMERAS[i % len(CAMERAS)], "shot": shot, "sfx": sfx,
-               "seed": base_seed + n * 7, "prompt": prompt, "negative": image.NEG, "char_x": [.5, .35, .62, .5, .4, .55, .5][i % 7]}
+               "seed": base_seed + n * 7, "prompt": prompt, "negative": image.NEG + (", " + sty["negative"] if sty["negative"] else ""), "char_x": [.5, .35, .62, .5, .4, .55, .5][i % 7]}
         if n in overrides:
             row["prompt"] = overrides[n]["prompt"]; row["prompt_override"] = True
         scenes_out.append(row)
@@ -117,7 +120,7 @@ def visuals(pid, scenes=None):
     cache = util.jread(d / "visual_cache.json", {})
     be = image.pick_backend(); made = 0
     for s in sb["scenes"]:
-        k = util.key(s["prompt"], s["seed"], be, W, H, s["mood"], s["terrain"], s["show_character"], s["char_x"], ch and ch["colors"])
+        k = util.key(s["prompt"], s.get("negative"), s["seed"], be, W, H, s["mood"], s["terrain"], s["show_character"], s["char_x"], ch and ch["colors"])
         if scenes and s["n"] not in scenes:
             continue
         if cache.get(str(s["n"])) == k and (d / f"s{s['n']:02d}.png").exists():
@@ -364,7 +367,7 @@ def qc(pid, scenes=None):
     dup = db.one("SELECT id FROM projects WHERE final_sha256=? AND id<>?", (sha, pid))
     add("not_duplicate_output", not dup, dup and f"identical to project {dup['id']}")
     tts_be = (util.jread(pdir(pid) / "narration" / "durations.json") or {}).get("backend")
-    add("real_narration", tts_be in ("piper", "espeak"), tts_be)
+    add("real_narration", tts_be in ("kokoro", "piper", "espeak"), tts_be)
     return _qc_save(pid, checks)
 
 

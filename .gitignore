@@ -10,3 +10,4 @@ dashboard/dist/
 models/
 logs/
 content/*.mp4
+content/voice_samples/
