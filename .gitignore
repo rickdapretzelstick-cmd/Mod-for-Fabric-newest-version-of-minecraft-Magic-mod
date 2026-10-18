@@ -1,0 +1,11 @@
+secrets/*
+!secrets/.gitkeep
+data/
+*.db
+__pycache__/
+.pytest_cache/
+node_modules/
+dashboard/dist/
+.venv/
+models/
+logs/
