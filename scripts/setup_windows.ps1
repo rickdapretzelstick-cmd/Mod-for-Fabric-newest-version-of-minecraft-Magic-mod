@@ -27,12 +27,12 @@ Push-Location dashboard; npm install; npm run build; Pop-Location
 # n8n (npm install; no Docker needed)
 npm install -g n8n
 
-# ComfyUI (images). Pascal GPUs need a PyTorch build that still ships sm_61 kernels: use the cu126 wheels, then verify.
+# ComfyUI (images). RTX 50-series (Blackwell, sm_120) needs PyTorch built for CUDA 12.8+: use the cu128 wheels, then verify.
 if (-not (Test-Path ComfyUI)) { git clone https://github.com/comfyanonymous/ComfyUI.git ComfyUI }
 if (-not (Test-Path ComfyUI\venv)) { python -m venv ComfyUI\venv }
-ComfyUI\venv\Scripts\python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+ComfyUI\venv\Scripts\python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 ComfyUI\venv\Scripts\python -m pip install -r ComfyUI\requirements.txt
-ComfyUI\venv\Scripts\python -c "import torch; print('CUDA available:', torch.cuda.is_available()); torch.zeros(1).cuda(); print('Pascal kernel check passed')"
+ComfyUI\venv\Scripts\python -c "import torch; print('CUDA available:', torch.cuda.is_available()); torch.zeros(1).cuda(); print('GPU kernel check passed')"
 
 $ckpt = "ComfyUI\models\checkpoints\v1-5-pruned-emaonly.safetensors"
 if (-not (Test-Path $ckpt)) {

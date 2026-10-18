@@ -21,7 +21,11 @@ print(f"CPU use {snap['cpu_pct']}%  RAM {snap['ram_total_gb']} GB  free disk {sn
 print(f"{ok(snap['disk_free_gb'] >= 30)} disk >= 30 GB free (models + renders)")
 if g:
     print(f"{ok(True)} GPU {g['name']} driver {g['driver']} VRAM {g['vram_total_mb']} MB compute capability {g['compute_capability']}")
-    print("     Pascal (CC 6.1): use ComfyUI with --force-fp32; avoid SDXL/video-diffusion; BF16/FlashAttention are NOT available." if g["compute_capability"].startswith("6") else "")
+    cc = g["compute_capability"]
+    if cc.startswith("6"):
+        print("     Pascal (CC 6.1): use ComfyUI with --force-fp32; avoid SDXL/video diffusion.")
+    elif cc.startswith("12"):
+        print("     Blackwell (CC 12.x, e.g. RTX 50-series): needs PyTorch built for CUDA 12.8+ (cu128 wheels).")
 else:
     print(f"{ok(False)} NVIDIA GPU / nvidia-smi (images fall back to the procedural painter)")
 for exe in ("ffmpeg", "ffprobe", "node", "ollama"):

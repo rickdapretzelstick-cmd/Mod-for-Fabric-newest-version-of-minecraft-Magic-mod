@@ -36,8 +36,7 @@ This was built and tested in a **Linux sandbox with no GPU**, not on your Window
 * **Visual quality is not cinematic when ComfyUI is unavailable.** The fallback painter produces flat, stylised
   silhouette scenes with depth-layer parallax. It keeps the pipeline working; it will not hold viewers. Real quality
   depends on SD 1.5 via ComfyUI (untested) — and even then it is camera moves over stills, not video diffusion.
-* **No text-to-video diffusion** (AnimateDiff/SVD) is integrated. On Pascal (no BF16/FlashAttention, slow FP16, 11 GB) it
-  is impractical, so animation = parallax camera moves, vignette, grain, transitions, ducked music, SFX.
+* **No text-to-video diffusion** (AnimateDiff/SVD) is integrated. On a 12 GB card it is not integrated here yet, so animation = parallax camera moves, vignette, grain, transitions, ducked music, SFX.
 * **Character consistency** = fixed seed per character + a fixed prompt prefix + registered colours + saved reference
   images. IP-Adapter/ControlNet reference conditioning is *not* implemented, so faces may drift with diffusion images.
 * **Automated QC ≠ creative quality.** Every QC report says creative review is *not assessed*. You judge the video.
@@ -52,19 +51,21 @@ and ~15 GB disk for models. The YouTube Data API is free within its daily quota.
 ## Setup (Windows, your PC)
 1. `powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1` — installs Python, FFmpeg, Node, Git, Ollama via
    winget; creates `.venv`; installs Piper + voice; pulls `qwen2.5:7b-instruct-q4_K_M`; builds the dashboard; installs n8n
-   (npm, no Docker); installs ComfyUI with CUDA 12.6 PyTorch wheels and runs a Pascal kernel check; asks before
+   (npm, no Docker); installs ComfyUI with CUDA 12.8 PyTorch wheels (required for RTX 50-series) and runs a GPU kernel check; asks before
    downloading the SD 1.5 checkpoint (OpenRAIL-M licence acceptance).
 2. `python scripts\preflight.py` — shows what is/isn't working.
-3. `start_factory.bat` — starts ComfyUI (`--force-fp32`), the factory (http://127.0.0.1:8765) and n8n (http://127.0.0.1:5678).
+3. `start_factory.bat` — starts ComfyUI, the factory (http://127.0.0.1:8765) and n8n (http://127.0.0.1:5678).
 4. In n8n, open workflows **A–D**, set them Active when you want automation (they import inactive).
 
 Linux/macOS: `pip install -r requirements.txt piper-tts`, `cd dashboard && npm i && npm run build`, `./start_factory.sh`.
 
-### GTX 1080 Ti notes
-Pascal (CC 6.1): use SD 1.5 at 512×768 in fp32 (~4–5 GB VRAM); avoid SDXL, FlashAttention, BF16, video diffusion.
-Ollama's 7B q4 model (~5 GB) is run with `keep_alive: 0` and ComfyUI is told to `/free` models after the visuals stage, and
-each stage runs in its own subprocess, so only one heavy model is ever resident. If the torch check in setup fails, newer
-PyTorch builds may have dropped sm_61 — install an older cu126/cu121 wheel.
+### GPU notes (RTX 5070, 12 GB — untested, written from specs)
+Blackwell (sm_120) needs PyTorch built for CUDA 12.8+; the setup script uses the cu128 wheels and runs a kernel check — if it
+fails, update the NVIDIA driver and PyTorch. FP16/BF16 are fast on this card, so SDXL (set `image.checkpoint` to an SDXL
+checkpoint and `gen_w/gen_h` to 768/1344) should fit in 12 GB, and small video models (e.g. LTX-Video, Wan 2.1 1.3B in ComfyUI)
+may be feasible — **not integrated or tested**. The default stays SD 1.5 at 512x768 because it is the safest first run.
+Only one heavy model is resident at a time: Ollama uses `keep_alive: 0`, ComfyUI is told to `/free` after the visuals stage,
+and each stage runs in its own subprocess.
 
 ### YouTube authorisation (one-time, never your password)
 1. Google Cloud Console → create project → enable **YouTube Data API v3** → OAuth consent screen (External, add yourself as test user)
