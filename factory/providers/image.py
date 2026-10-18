@@ -253,6 +253,9 @@ def _draw_character(img, spec, w, h, rng):
     cx, base = int(w * spec.get("char_x", .5)), int(h * .93)
     ch = int(h * .27 * scale); bw = int(ch * .26)
     d = ImageDraw.Draw(img)
+    sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sh).ellipse([cx - bw * 1.5, base - ch * .03, cx + bw * 1.5, base + ch * .05], fill=(0, 0, 0, 110))
+    img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(6)))
     d.polygon([(cx - bw, base), (cx + bw, base), (cx + bw // 2, base - ch * .65), (cx - bw // 2, base - ch * .65)], fill=cloth + (255,))
     d.rectangle([cx - bw // 2, base - ch * .68, cx + bw // 2, base - ch * .6], fill=acc + (255,))
     hr = int(ch * .13)
@@ -280,6 +283,9 @@ def generate_scene(spec: dict, seed: int, out_dir: Path, name: str, w: int, h: i
     if backend == "diffusers":
         diffusers_generate(prompt, seed, out_dir / f"{name}.png", w, h, neg)
         return "diffusers"
+    if backend == "hybrid":
+        _hybrid(spec, seed, out_dir, name, w, h, prompt, neg)
+        return "hybrid"
     layers = paint_layers(spec, w, h, seed)
     for k, im in layers.items():
         im.save(out_dir / f"{name}_{k}.png")
@@ -317,12 +323,28 @@ def diffusers_generate(prompt, seed, out_path: Path, w, h, negative=NEG):
     im.resize((w, h), Image.LANCZOS).save(out_path)
 
 
+def _hybrid(spec, seed, out_dir, name, w, h, prompt, neg):
+    """AI-painted people-free backdrop + flat-shape character layer on top (depth layers kept for parallax)."""
+    diffusers_generate(prompt, seed, out_dir / f"{name}_bg.png", w, h, neg)
+    bg = Image.open(out_dir / f"{name}_bg.png").convert("RGBA")
+    empty = Image.new("RGBA", (w, h), (0, 0, 0, 0)); char = empty.copy(); fogl = empty.copy()
+    rng = random.Random(seed)
+    if spec.get("show_character", True):
+        _draw_character(char, spec, w, h, rng)
+    if "ghost" in (spec.get("props") or []):
+        _props({"props": ["ghost"], "char_x": spec.get("char_x", .5), "cloth_color": spec.get("cloth_color"), "accent_color": spec.get("accent_color")}, None, w, h, rng, empty.copy(), fogl, char)
+    layers = {"sky": bg, "far": empty, "mid": empty, "near": empty, "fog": fogl, "char": char}
+    for k, im in layers.items():
+        im.save(out_dir / f"{name}_{k}.png")
+    flatten(layers).save(out_dir / f"{name}.png")
+
+
 def pick_backend():
     s = config.load_settings()["image"]
-    if s["backend"] in ("comfyui", "diffusers", "procedural"):
+    if s["backend"] in ("comfyui", "diffusers", "procedural", "hybrid"):
         return s["backend"]
     if comfy_available(s["comfyui_url"]):
         return "comfyui"
     if diffusers_available():
-        return "diffusers"
+        return "hybrid"
     return "procedural"

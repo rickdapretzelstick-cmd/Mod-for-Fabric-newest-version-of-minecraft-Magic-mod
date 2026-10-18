@@ -81,10 +81,13 @@ def storyboard(pid, scenes=None):
         cp = characters.prompt_prefix(ch) if (ch and s.get("show_character", True)) else ""
         if img["style"] == "minimal" and ch:   # keep the character, drop its photographic style words
             cp = f"{ch['name']}, {ch['appearance']}, wearing {ch['clothing']}"
-        prompt = ", ".join(x for x in [sty["prefix"], cp, s["visual"], shot if img["style"] != "minimal" else "", sty["suffix"]] if x)
+        if img["style"] == "backdrop":      # hybrid: backdrop only; the character is drawn separately as flat shapes
+            prompt = ", ".join(x for x in [sty["prefix"], s.get("background") or s["visual"], sty["suffix"]] if x)
+        else:
+            prompt = ", ".join(x for x in [sty["prefix"], cp, s["visual"], shot if img["style"] != "minimal" else "", sty["suffix"]] if x)
         sfx = ["impact"] if i == 0 else (["riser"] if i == len(sc["scenes"]) - 3 else (["impact"] if i == len(sc["scenes"]) - 2 else []))
         row = {"n": n, "narration": s["narration"], "visual": s["visual"], "mood": s.get("mood", "night"), "terrain": s.get("terrain", "mountains"),
-               "show_character": bool(s.get("show_character", True)), "props": s.get("props", []), "lh_x": s.get("lh_x", .68), "lh_h": s.get("lh_h", .42), "camera": CAMERAS[i % len(CAMERAS)], "shot": shot, "sfx": sfx,
+               "show_character": bool(s.get("show_character", True)), "props": s.get("props", []), "background": s.get("background"), "lh_x": s.get("lh_x", .68), "lh_h": s.get("lh_h", .42), "camera": CAMERAS[i % len(CAMERAS)], "shot": shot, "sfx": sfx,
                "seed": base_seed + n * 7, "prompt": prompt, "negative": image.NEG + (", " + sty["negative"] if sty["negative"] else ""), "char_x": s.get("char_x", [.5, .35, .62, .5, .4, .55, .5][i % 7]), "char_scale": s.get("char_scale", 1.0)}
         if n in overrides:
             row["prompt"] = overrides[n]["prompt"]; row["prompt_override"] = True

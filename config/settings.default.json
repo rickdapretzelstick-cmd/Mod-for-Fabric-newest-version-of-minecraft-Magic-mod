@@ -28,7 +28,7 @@
     "timeout_s": 300
   },
   "image": {
-    "backend": "procedural",
+    "backend": "hybrid",
     "comfyui_url": "http://127.0.0.1:8188",
     "checkpoint": "v1-5-pruned-emaonly.safetensors",
     "gen_w": 512,
@@ -47,7 +47,7 @@
       "h": 768,
       "cache_dir": "models/hf"
     },
-    "style": "shapes",
+    "style": "backdrop",
     "styles": {
       "minimal": {
         "prefix": "minimal flat illustration, simple shapes, bold clean silhouette, limited color palette, soft gradient background, uncluttered, lots of negative space",
@@ -58,6 +58,11 @@
         "prefix": "",
         "suffix": "cinematic lighting, volumetric fog, film still, 35mm, highly detailed",
         "negative": ""
+      },
+      "backdrop": {
+        "prefix": "painterly atmospheric landscape illustration, soft gradients, simple elegant composition, rich cinematic color grading",
+        "suffix": "wide empty scene, no people, calm focal point, space in the lower center",
+        "negative": "people, person, figure, human, face, hands, text, watermark, busy, cluttered, deformed"
       }
     }
   },

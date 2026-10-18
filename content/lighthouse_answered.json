@@ -28,7 +28,8 @@
       "show_character": false,
       "props": [
         "lighthouse_red"
-      ]
+      ],
+      "background": "a tall lighthouse alone on a frozen sea at dusk, one red light glowing in the fog, purple and pink sky"
     },
     {
       "narration": "Nell rowed out across the ice alone, because the light was blinking in her mother's code.",
@@ -40,7 +41,8 @@
         "lighthouse_far"
       ],
       "char_x": 0.3,
-      "char_scale": 0.75
+      "char_scale": 0.75,
+      "background": "frozen sea at dusk with a distant lighthouse on the horizon, cracked ice, soft purple pink sky"
     },
     {
       "narration": "Inside, every step upward matched a name carved into the wall. Hers was waiting at the top.",
@@ -52,7 +54,8 @@
         "stairs"
       ],
       "char_x": 0.62,
-      "char_scale": 0.9
+      "char_scale": 0.9,
+      "background": "inside a stone lighthouse stairwell, spiral stairs rising, names carved into the stone walls, warm lantern glow"
     },
     {
       "narration": "In the lamp room, the ancient lens turned by itself, and the fog began to pull back.",
@@ -64,7 +67,8 @@
         "lamp"
       ],
       "char_x": 0.5,
-      "char_scale": 1.15
+      "char_scale": 1.15,
+      "background": "lighthouse lamp room with a giant glowing lens, golden light rays, windows showing night fog"
     },
     {
       "narration": "Beneath the ice, thousands of lights blinked awake. Ships, lost for decades, waiting to be seen.",
@@ -78,7 +82,8 @@
         "beam"
       ],
       "lh_x": 0.8,
-      "lh_h": 0.3
+      "lh_h": 0.3,
+      "background": "frozen sea at night with thousands of tiny glowing lights beneath the ice, a lighthouse beam sweeping above, magical"
     },
     {
       "narration": "Her mother never vanished. She kept the light burning, so the lost could find their way home.",
@@ -90,7 +95,8 @@
         "ghost"
       ],
       "char_x": 0.4,
-      "char_scale": 1.2
+      "char_scale": 1.2,
+      "background": "warm golden glow inside a lighthouse lamp room, soft light streaming through windows at dawn"
     },
     {
       "narration": "Now Nell lights it every night. And every night, someone comes home.",
@@ -103,7 +109,8 @@
         "boats"
       ],
       "lh_x": 0.25,
-      "lh_h": 0.36
+      "lh_h": 0.36,
+      "background": "lighthouse at sunrise, warm pink and gold sky, small sailing boats on calm water, hopeful"
     }
   ]
 }
