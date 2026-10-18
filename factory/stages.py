@@ -206,7 +206,23 @@ def _draw_actors(canvas, actor, tt, dur, box, sw, sh, W, H):
         canvas.paste(im, (int(px), int(py)), im)
 
 
-def render_clip(layers, move, dur, out, W, H, fps, actor=None):
+def _draw_panic(canvas, panic, tt, W, H):
+    """Simplest hero, permanent fear marks, racing along a zig-zag path with short afterimage trails. Ignores the story."""
+    T = panic["t0"] + tt; unit = H * .21 / rig.H_UNITS; size = max(8, int(rig.CS * unit / rig.R))
+    for trail in (3, 2, 1, 0):
+        st = rig.panic_state(panic["segs"], T - .02 * trail)
+        if not st:
+            continue
+        (fx, fy), (vx, vy) = st; vx, vy = vx * W, vy * H
+        rot = -math.degrees(math.atan2(vx, -vy)) + 6 * math.sin(T * 45)
+        pose = dict(rig.default_pose(), simple=True, fear=True, lantern=False, rot=rot, sy=1 + .04 * math.sin(T * 30))
+        im = rig.draw_rig(panic["cloth"], panic["accent"], pose, T).resize((size, size), Image.BILINEAR)
+        if trail:
+            im.putalpha(im.split()[3].point(lambda v, a=.5 - trail * .13: int(v * a)))
+        canvas.paste(im, (int(fx * W - size / 2), int(fy * H - size / 2)), im)
+
+
+def render_clip(layers, move, dur, out, W, H, fps, actor=None, panic=None):
     """layers: list of (PIL RGBA at 1.25x render size, depth 0..1). Parallax: nearer layers move/zoom more."""
     frames = int(round(dur * fps))
     proc = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(fps), "-i", "-",
@@ -232,6 +248,8 @@ def render_clip(layers, move, dur, out, W, H, fps, actor=None):
                     canvas = fr
                 else:
                     canvas.alpha_composite(fr)
+            if panic:
+                _draw_panic(canvas, panic, tt, W, H)
             proc.stdin.write(canvas.convert("RGB").tobytes())
         proc.stdin.close()
         if proc.wait() != 0:
@@ -246,7 +264,7 @@ def animation(pid, scenes=None):
     d = pdir(pid) / "scenes"; cache = util.jread(d / "clip_cache.json", {}); made = 0
     for i, s in enumerate(sb["scenes"]):
         n = s["n"]; clip = d / f"s{n:02d}.mp4"
-        k = util.key(s["camera"], s.get("action"), s.get("char_x"), s.get("char_scale"), "rig3", round(tl["durations"][i], 3), W, H, fps, (d / f"s{n:02d}.png").stat().st_mtime_ns)
+        k = util.key(s["camera"], s.get("action"), s.get("char_x"), s.get("char_scale"), "rig3", config.load_settings().get("character", {}).get("mode"), round(tl["durations"][i], 3), W, H, fps, (d / f"s{n:02d}.png").stat().st_mtime_ns)
         if cache.get(str(n)) == k and clip.exists():
             continue
         names = [("sky", .0), ("far", .15), ("mid", .4), ("fog", .55), ("char", .75), ("near", 1.0)]
@@ -257,13 +275,19 @@ def animation(pid, scenes=None):
             # char layer should sit between mid/fog and near; reorder by painter order sky,far,mid,fog,char,near
         else:
             layers = [(Image.open(d / f"s{n:02d}.png").convert("RGBA"), .5, "flat")]   # diffusion image: camera move only
-        actor = None
-        if s.get("action") and s["show_character"]:
+        actor = None; panic = None
+        mode = config.load_settings().get("character", {}).get("mode", "story")
+        if mode == "panic":
+            layers = [l for l in layers if l[2] != "char"]
+            chp = characters.get(project(pid)["character_id"]) if project(pid)["character_id"] else None
+            colp = (chp or {}).get("colors", {})
+            panic = {"segs": rig.panic_path(pid), "t0": tl["starts"][i], "cloth": rig._hex(colp.get("cloth", "#c8492f"), (200, 70, 50)), "accent": rig._hex(colp.get("accent", "#f2c14e"), (240, 190, 80))}
+        elif s.get("action") and s["show_character"]:
             ch = characters.get(project(pid)["character_id"]) if project(pid)["character_id"] else None
             col = (ch or {}).get("colors", {})
             actor = {"x": s["char_x"], "scale": s.get("char_scale", 1.0), "action": s["action"], "ghost": "ghost" in (s.get("props") or []),
                      "cloth": rig._hex(col.get("cloth", "#c8492f"), (200, 70, 50)), "accent": rig._hex(col.get("accent", "#f2c14e"), (240, 190, 80))}
-        render_clip(layers, s["camera"], tl["durations"][i], clip, W, H, fps, actor)
+        render_clip(layers, s["camera"], tl["durations"][i], clip, W, H, fps, actor, panic)
         cache[str(n)] = k; made += 1
     util.jwrite(d / "clip_cache.json", cache)
     return {"clips_rendered": made, "render_size": [W, H], "parallax": (d / "s01_sky.png").exists(), "total_seconds": round(tl["total"], 2)}

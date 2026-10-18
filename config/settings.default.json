@@ -108,5 +108,8 @@
     "font": "Arial",
     "size": 86,
     "chunk_words": 3
+  },
+  "character": {
+    "mode": "panic"
   }
 }

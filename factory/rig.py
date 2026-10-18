@@ -30,21 +30,24 @@ def draw_rig(cloth, accent, pose, t=0.0, ghost=False):
     p = dict(default_pose(), **pose); sx, sy, fl = p["sx"], p["sy"], p["flip"]
     P = lambda x, y: (PIV + x * fl * sx * R, PIV + (y * sy + 60) * R)
     dark = _shade(cloth, .62); skin = (30, 24, 34); glove = accent
+    simple = p.get("simple", False)
     # feet
-    for side, lift in ((-1, p["foot_l"]), (1, p["foot_r"])):
+    for side, lift in ((-1, p["foot_l"]), (1, p["foot_r"])) if not simple else ():
         cx, cy = P(side * 11, -lift); d.ellipse([cx - 8 * sx * R, cy - 4 * sy * R, cx + 8 * sx * R, cy + 4 * sy * R], fill=(36, 28, 40, 255))
     # arms behind body
     def arm(side, ang):
         a = math.radians(ang); sh = (side * 13, -56); hand = (side * 13 + side * 21 * math.sin(a) * 1.0, -56 + 21 * math.cos(a))
         d.line([P(*sh), P(*hand)], fill=dark + (255,), width=int(7.5 * R)); hx, hy = P(*hand)
         d.ellipse([hx - 4.5 * R, hy - 4.5 * R, hx + 4.5 * R, hy + 4.5 * R], fill=glove + (255,)); return hand
-    hl = arm(-1, p["arm_l"])
+    if not simple:
+        arm(-1, p["arm_l"])
     # body
     d.polygon([P(-24, 0), P(24, 0), P(12, -66), P(-12, -66)], fill=cloth + (255,))
-    d.polygon([P(-6, 0), P(24, 0), P(12, -66), P(4, -66)], fill=_shade(cloth, .82) + (255,))
+    if not simple:
+        d.polygon([P(-6, 0), P(24, 0), P(12, -66), P(4, -66)], fill=_shade(cloth, .82) + (255,))
     d.polygon([P(-13, -63), P(13, -63), P(12.5, -69), P(-12.5, -69)], fill=accent + (255,))
-    hr_ = arm(1, p["arm_r"])
-    if p["lantern"] and not ghost:
+    hr_ = arm(1, p["arm_r"]) if not simple else (0, 0)
+    if p["lantern"] and not ghost and not simple:
         lx, ly = P(hr_[0] * 1.0, hr_[1] + 9); g = Image.new("RGBA", (CS, CS), (0, 0, 0, 0))
         ImageDraw.Draw(g).ellipse([lx - 16 * R, ly - 16 * R, lx + 16 * R, ly + 16 * R], fill=accent + (70,)); im.alpha_composite(g)
         d.rectangle([lx - 4 * R, ly - 4 * R, lx + 4 * R, ly + 5 * R], fill=(255, 226, 150, 255), outline=(90, 62, 30, 255), width=R)
@@ -84,6 +87,16 @@ def draw_rig(cloth, accent, pose, t=0.0, ghost=False):
             x, y = P(17, ftop + 8); s_ = 3.8 * R * pop_s
             d.polygon([(x, y - s_), (x + s_ * .25, y - s_ * .25), (x + s_, y), (x + s_ * .25, y + s_ * .25), (x, y + s_), (x - s_ * .25, y + s_ * .25), (x - s_, y), (x - s_ * .25, y - s_ * .25)], fill=(255, 255, 255, 255))
         layer.putalpha(layer.split()[3].point(lambda v, a_=alpha: int(v * a_))); im.alpha_composite(layer)
+    if p.get("fear"):   # permanent fear: anime gloom lines on the head + sweat drops flicking off both sides
+        layer = Image.new("RGBA", (CS, CS), (0, 0, 0, 0)); dd = ImageDraw.Draw(layer); hx3, hy3 = P(0, -79)
+        for k in range(-2, 3):
+            x0, y0 = P(k * 5.2, -91); x1, y1 = P(k * 5.2, -71 + (3 if k % 2 else 0))
+            dd.line([(x0, y0), (x1, y1)], fill=(120, 160, 255, 235), width=int(1.8 * R))
+        for k in range(4):
+            u = (t * 3.4 + k * .25) % 1; side = -1 if k % 2 else 1
+            x, y = P(side * (17 + u * 16), -96 + u * 10 - (1 - u) * 8); r_ = 2.7 * R * (1 - u * .35)
+            dd.polygon([(x, y - r_ * 1.9), (x - r_, y), (x + r_, y)], fill=(150, 210, 255, int(255 * (1 - u * .7)))); dd.ellipse([x - r_, y - r_, x + r_, y + r_], fill=(150, 210, 255, int(255 * (1 - u * .7))))
+        im.alpha_composite(layer)
     if ghost:
         im.putalpha(im.split()[3].point(lambda v: int(v * .58)))
     rot = p["rot"]
@@ -227,3 +240,25 @@ def ghost_pose(t, dur, action):
     if action == "cry_hop" and u > .6:
         p["dx"] = .7 + .05 * math.sin(t * 5); p["arm_l"] = 110; p["arm_r"] = 110
     return p
+
+
+# ---------------------------- panic mode: constant fast zig-zag across the screen ----------------------------
+def panic_path(seed, total=75.0, speed=1.0):
+    """Deterministic list of off-screen -> on-screen turn -> off-screen runs, each ~0.5 s long."""
+    rng = random.Random(seed); segs = []; t = 0.0; m = .2
+
+    def off(edge):
+        return {"L": (-m, rng.uniform(.1, .9)), "R": (1 + m, rng.uniform(.1, .9)), "T": (rng.uniform(.1, .9), -m * .8), "B": (rng.uniform(.1, .9), 1 + m * .9)}[edge]
+    while t < total:
+        d = rng.uniform(.42, .7) / speed; e = rng.choice("LRTB"); x = rng.choice([k for k in "LRTB" if k != e])
+        segs.append((t, d, off(e), (rng.uniform(.15, .85), rng.uniform(.2, .8)), off(x))); t += d + rng.uniform(.04, .22)
+    return segs
+
+
+def panic_state(segs, T):
+    """Returns ((x, y) in screen fractions, (vx, vy)) or None while off-screen between runs."""
+    for t0, d, E, M, X in segs:
+        if t0 <= T < t0 + d:
+            u = (T - t0) / d; a, b, k = (E, M, u / .5) if u < .5 else (M, X, (u - .5) / .5)
+            return (lerp(a[0], b[0], k), lerp(a[1], b[1], k)), (b[0] - a[0], b[1] - a[1])
+    return None
