@@ -12,8 +12,22 @@ def enqueue(project_id, kind, params=None):
                   (project_id, kind, json.dumps(params or {}), "queued", time.time()))
 
 
+def _kill_orphans():
+    """A hard-killed server can leave its stage subprocess running; kill it so two writers never touch one project."""
+    import psutil
+    for pid in db.kv_get("stage_pids", []):
+        try:
+            pr = psutil.Process(pid)
+            if "factory" in " ".join(pr.cmdline()) and "stage" in pr.cmdline():
+                pr.kill()
+        except Exception:
+            pass
+    db.kv_set("stage_pids", [])
+
+
 def recover():
     """After a crash/restart: running jobs go back to queued; half-finished stages go back to pending."""
+    _kill_orphans()
     db.run("UPDATE jobs SET status='queued' WHERE status='running'")
     db.run("UPDATE stages SET status='pending' WHERE status='running'")
     db.run("UPDATE projects SET status='queued' WHERE status='producing'")
@@ -37,6 +51,7 @@ def run_stage_subprocess(pid, stage, scenes, timeout, job_id):
     with open(log, "a") as lf:
         lf.write(f"\n=== {time.ctime()} {stage}\n"); lf.flush()
         p = subprocess.Popen(cmd, stdout=lf, stderr=subprocess.STDOUT, cwd=str(config.ROOT)); _proc["p"] = p
+        db.kv_set("stage_pids", [p.pid])
         try:
             rc = p.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -45,7 +60,7 @@ def run_stage_subprocess(pid, stage, scenes, timeout, job_id):
             db.log_error(pid, stage, f"Timed out after {timeout}s")
             return "timeout"
         finally:
-            _proc["p"] = None
+            _proc["p"] = None; db.kv_set("stage_pids", [])
     return "ok" if rc == 0 else ("killed" if rc < 0 else "error")
 
 
@@ -81,6 +96,8 @@ def run_job(job):
             db.run("UPDATE jobs SET status='failed', error=?, finished_at=? WHERE id=?", (f"{stg}: {err}", time.time(), jid))
             db.run("UPDATE projects SET status='failed' WHERE id=?", (pid,)); return
         if only:
+            # a single-stage job (n8n step) must not leave the project looking busy: put it back in the queue
+            db.run("UPDATE projects SET status='queued' WHERE id=? AND status='producing'", (pid,))
             db.run("UPDATE jobs SET status='done', finished_at=? WHERE id=?", (time.time(), jid)); return
 
 

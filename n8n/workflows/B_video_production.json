@@ -1,0 +1,765 @@
+{
+  "name": "B - Video Production",
+  "nodes": [
+    {
+      "id": "0b92f463-0384-40b8-8485-2ffbd8b5d40f",
+      "name": "Every 10 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b8c0e372-465c-41d3-8440-b571ad22b0f9",
+      "name": "Manual run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        160
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "a2a58c1b-5ee2-4dc5-94a2-9ff77157c448",
+      "name": "Next queued project",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        80
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=http://127.0.0.1:8765/api/auto/queue/next",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        }
+      }
+    },
+    {
+      "id": "8736e743-728b-47f2-afbe-b1e2a046d8ae",
+      "name": "Anything queued?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        520,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.project_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2375264d-6192-417b-8c46-a7707daead4a",
+      "name": "Load script & divide into scenes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/script/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c0c80556-e448-4bf1-afe0-866f11b2b68f",
+      "name": "Storyboard scenes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/storyboard/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "d35756ea-319a-41ff-896f-615d19018fa9",
+      "name": "Character & scene design",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/characters/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "bdcb5277-76ff-45df-8d98-4d2114692067",
+      "name": "Generate visual assets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/visuals/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "1f9a32e5-131a-47d7-976d-1a7485f84efe",
+      "name": "Generate narration",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1820,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/voiceover/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "144e28e2-57c6-4123-a610-8fbd15444d7e",
+      "name": "Animate scenes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/animation/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "98bc9aa7-e237-456d-8643-31de3a4b7b92",
+      "name": "Generate subtitles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2340,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/subtitles/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "d512715d-3e0a-40b3-a1e7-d126177c9c93",
+      "name": "Add sound effects & music",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2600,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/sound/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "9e56bbe7-9465-4d53-b3f5-2f75f8ea5250",
+      "name": "Assemble final video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/assembly/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "10d24353-24bd-400f-93ec-02afd1cf0fb6",
+      "name": "Automated QC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3120,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/qc/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "a82ac80b-5b62-4671-99ed-834a967f7814",
+      "name": "Title & description",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3380,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/metadata/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "2df84f97-52c7-44a3-9cb4-62eb73409780",
+      "name": "Create thumbnail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3640,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/stages/thumbnail/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wait",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "2bc26c9d-53cb-40d6-9889-52bb4b5df8fe",
+      "name": "Save package & queue for approval",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3900,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Next queued project').item.json.project_id }}/finalize",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Every 10 minutes": {
+      "main": [
+        [
+          {
+            "node": "Next queued project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next queued project": {
+      "main": [
+        [
+          {
+            "node": "Anything queued?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual run": {
+      "main": [
+        [
+          {
+            "node": "Next queued project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything queued?": {
+      "main": [
+        [
+          {
+            "node": "Load script & divide into scenes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Load script & divide into scenes": {
+      "main": [
+        [
+          {
+            "node": "Storyboard scenes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Storyboard scenes": {
+      "main": [
+        [
+          {
+            "node": "Character & scene design",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Character & scene design": {
+      "main": [
+        [
+          {
+            "node": "Generate visual assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate visual assets": {
+      "main": [
+        [
+          {
+            "node": "Generate narration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate narration": {
+      "main": [
+        [
+          {
+            "node": "Animate scenes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Animate scenes": {
+      "main": [
+        [
+          {
+            "node": "Generate subtitles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate subtitles": {
+      "main": [
+        [
+          {
+            "node": "Add sound effects & music",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add sound effects & music": {
+      "main": [
+        [
+          {
+            "node": "Assemble final video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble final video": {
+      "main": [
+        [
+          {
+            "node": "Automated QC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Automated QC": {
+      "main": [
+        [
+          {
+            "node": "Title & description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Title & description": {
+      "main": [
+        [
+          {
+            "node": "Create thumbnail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create thumbnail": {
+      "main": [
+        [
+          {
+            "node": "Save package & queue for approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

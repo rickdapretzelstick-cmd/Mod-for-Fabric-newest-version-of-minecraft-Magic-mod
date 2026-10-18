@@ -1,0 +1,250 @@
+{
+  "name": "A - Content Planning",
+  "nodes": [
+    {
+      "id": "7d094b6d-7dc7-40fd-945d-3308524b4c11",
+      "name": "Daily schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "affe99b8-479b-4bc6-ae7f-ef61169275b9",
+      "name": "Manual run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        160
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "928fd8e3-c293-4dc1-b3dd-43855ee4628c",
+      "name": "Generate & score ideas (dedupe in DB)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/ideas/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "count",
+              "value": "8"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "48fbaecc-5838-4d7f-aea5-44c7d492d8b3",
+      "name": "Pick strongest (not duplicates, above min score)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        80
+      ],
+      "parameters": {
+        "jsCode": "const r = $input.first().json; const min = r.min_score;\nreturn r.ideas.filter(i => i.status === 'new' && i.score >= min).sort((a,b)=>b.score-a.score).slice(0,2).map(i => ({json:{idea_id:i.id, title:i.title, score:i.score}}));"
+      }
+    },
+    {
+      "id": "9e85a2c0-7e79-4f4f-a513-5bd97c6df0f6",
+      "name": "Create project (script+storyboard queued)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({idea_id: $json.idea_id}) }}"
+      }
+    },
+    {
+      "id": "615ff611-8ee1-449e-bedc-883fbfc7ea84",
+      "name": "Write script",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $json.id }}/stages/script/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "2c8187c3-d30d-4e4d-8b1c-a2acff9372de",
+      "name": "Create storyboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $('Create project (script+storyboard queued)').item.json.id }}/stages/storyboard/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Daily schedule": {
+      "main": [
+        [
+          {
+            "node": "Generate & score ideas (dedupe in DB)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate & score ideas (dedupe in DB)": {
+      "main": [
+        [
+          {
+            "node": "Pick strongest (not duplicates, above min score)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick strongest (not duplicates, above min score)": {
+      "main": [
+        [
+          {
+            "node": "Create project (script+storyboard queued)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create project (script+storyboard queued)": {
+      "main": [
+        [
+          {
+            "node": "Write script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write script": {
+      "main": [
+        [
+          {
+            "node": "Create storyboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual run": {
+      "main": [
+        [
+          {
+            "node": "Generate & score ideas (dedupe in DB)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

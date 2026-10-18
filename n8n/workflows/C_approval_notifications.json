@@ -1,0 +1,168 @@
+{
+  "name": "C - Approval (human decision in dashboard)",
+  "nodes": [
+    {
+      "id": "5b504d41-54de-404f-b294-b055433e0552",
+      "name": "Every 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "02b97e32-1861-4041-bb75-1fa1acb01f7c",
+      "name": "Videos awaiting approval",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=http://127.0.0.1:8765/api/auto/approvals/pending",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        }
+      }
+    },
+    {
+      "id": "8b284440-45ef-4e83-9e13-3be1a4c01718",
+      "name": "Any pending?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6af23dae-2fad-457f-89ab-76c01eb394c9",
+      "name": "Post reminder to dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/notify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({message: \"Awaiting your approval: \" + $json.title, project_id: $json.id}) }}"
+      }
+    },
+    {
+      "id": "90a10ae5-d7c3-4cf2-898e-a0cb50b7e2b1",
+      "name": "NOTE",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "content": "APPROVE / REVISE / REJECT happen only in the dashboard (http://127.0.0.1:8765). The automation token used by n8n is refused by those endpoints, so this workflow cannot approve anything."
+      }
+    }
+  ],
+  "connections": {
+    "Every 15 minutes": {
+      "main": [
+        [
+          {
+            "node": "Videos awaiting approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Videos awaiting approval": {
+      "main": [
+        [
+          {
+            "node": "Any pending?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any pending?": {
+      "main": [
+        [
+          {
+            "node": "Post reminder to dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

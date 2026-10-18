@@ -1,0 +1,169 @@
+{
+  "name": "D - Publishing",
+  "nodes": [
+    {
+      "id": "b1846074-47ea-44d3-89bc-ca0176e0dd8a",
+      "name": "Every 30 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "454d2750-85be-4e95-a2d7-4ffcd81e6b05",
+      "name": "Manual run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        160
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "5b828092-e8f9-4070-a243-ef1143409683",
+      "name": "Approved & not yet uploaded",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        80
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=http://127.0.0.1:8765/api/auto/publish/ready",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        }
+      }
+    },
+    {
+      "id": "33c92990-e1b2-4b91-a916-d19bbac2672e",
+      "name": "Publish (server re-verifies approval, hash, duplicates)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/projects/{{ $json.id }}/publish",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "632e750b-7de4-439d-a88a-9fe78f813792",
+      "name": "Refresh analytics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8765/api/auto/analytics/refresh",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{ $env.FACTORY_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3700000
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 30 minutes": {
+      "main": [
+        [
+          {
+            "node": "Approved & not yet uploaded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved & not yet uploaded": {
+      "main": [
+        [
+          {
+            "node": "Publish (server re-verifies approval, hash, duplicates)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish (server re-verifies approval, hash, duplicates)": {
+      "main": [
+        [
+          {
+            "node": "Refresh analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual run": {
+      "main": [
+        [
+          {
+            "node": "Approved & not yet uploaded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
