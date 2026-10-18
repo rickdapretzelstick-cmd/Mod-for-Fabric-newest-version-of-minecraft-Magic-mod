@@ -40,9 +40,10 @@
       "props": [
         "lighthouse_far"
       ],
-      "char_x": 0.3,
-      "char_scale": 0.75,
-      "background": "frozen sea at dusk with a distant lighthouse on the horizon, cracked ice, soft purple pink sky"
+      "char_x": 0.5,
+      "char_scale": 1.0,
+      "background": "frozen sea at dusk with a distant lighthouse on the horizon, cracked ice, soft purple pink sky",
+      "action": "slip"
     },
     {
       "narration": "Inside, every step upward matched a name carved into the wall. Hers was waiting at the top.",
@@ -53,9 +54,10 @@
       "props": [
         "stairs"
       ],
-      "char_x": 0.62,
+      "char_x": 0.3,
       "char_scale": 0.9,
-      "background": "inside a stone lighthouse stairwell, spiral stairs rising, names carved into the stone walls, warm lantern glow"
+      "background": "inside a stone lighthouse stairwell, spiral stairs rising, names carved into the stone walls, warm lantern glow",
+      "action": "stair_hop"
     },
     {
       "narration": "In the lamp room, the ancient lens turned by itself, and the fog began to pull back.",
@@ -68,22 +70,23 @@
       ],
       "char_x": 0.5,
       "char_scale": 1.15,
-      "background": "lighthouse lamp room with a giant glowing lens, golden light rays, windows showing night fog"
+      "background": "dark circular lamp room at night, one huge glowing golden lens in the center, soft light rays",
+      "action": "startle_spin"
     },
     {
       "narration": "Beneath the ice, thousands of lights blinked awake. Ships, lost for decades, waiting to be seen.",
       "visual": "frozen sea at night with many small glowing lights beneath the ice, one lighthouse beam above",
       "mood": "night",
       "terrain": "sea",
-      "show_character": false,
+      "show_character": true,
       "props": [
-        "lights",
-        "lighthouse",
-        "beam"
+        "lights"
       ],
       "lh_x": 0.8,
       "lh_h": 0.3,
-      "background": "frozen sea at night with thousands of tiny glowing lights beneath the ice, a lighthouse beam sweeping above, magical"
+      "background": "calm frozen sea at night under stars, soft blue and gold lights glowing beneath clear ice, wide empty scene",
+      "action": "gawk",
+      "char_x": 0.5
     },
     {
       "narration": "Her mother never vanished. She kept the light burning, so the lost could find their way home.",
@@ -94,23 +97,25 @@
       "props": [
         "ghost"
       ],
-      "char_x": 0.4,
+      "char_x": 0.35,
       "char_scale": 1.2,
-      "background": "warm golden glow inside a lighthouse lamp room, soft light streaming through windows at dawn"
+      "background": "warm golden light filling a lighthouse lamp room at dawn, round windows, soft glow",
+      "action": "cry_hop"
     },
     {
       "narration": "Now Nell lights it every night. And every night, someone comes home.",
       "visual": "lighthouse at sunrise with warm light, small boats on calm water",
       "mood": "dawn",
       "terrain": "sea",
-      "show_character": false,
+      "show_character": true,
       "props": [
-        "lighthouse",
         "boats"
       ],
       "lh_x": 0.25,
       "lh_h": 0.36,
-      "background": "lighthouse at sunrise, warm pink and gold sky, small sailing boats on calm water, hopeful"
+      "background": "lighthouse at sunrise, warm pink and gold sky, small sailing boats on calm water, hopeful",
+      "action": "victory",
+      "char_x": 0.5
     }
   ]
 }

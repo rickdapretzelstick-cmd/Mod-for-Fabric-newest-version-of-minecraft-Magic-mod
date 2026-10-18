@@ -4,7 +4,7 @@ import json, math, random, re, subprocess, time
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
-from . import config, db, characters, util
+from . import config, db, characters, util, rig
 from .providers import llm, image, tts, audio
 
 TRANSITION = 0.35
@@ -87,7 +87,7 @@ def storyboard(pid, scenes=None):
             prompt = ", ".join(x for x in [sty["prefix"], cp, s["visual"], shot if img["style"] != "minimal" else "", sty["suffix"]] if x)
         sfx = ["impact"] if i == 0 else (["riser"] if i == len(sc["scenes"]) - 3 else (["impact"] if i == len(sc["scenes"]) - 2 else []))
         row = {"n": n, "narration": s["narration"], "visual": s["visual"], "mood": s.get("mood", "night"), "terrain": s.get("terrain", "mountains"),
-               "show_character": bool(s.get("show_character", True)), "props": s.get("props", []), "background": s.get("background"), "lh_x": s.get("lh_x", .68), "lh_h": s.get("lh_h", .42), "camera": CAMERAS[i % len(CAMERAS)], "shot": shot, "sfx": sfx,
+               "show_character": bool(s.get("show_character", True)), "props": s.get("props", []), "action": s.get("action"), "background": s.get("background"), "lh_x": s.get("lh_x", .68), "lh_h": s.get("lh_h", .42), "camera": CAMERAS[i % len(CAMERAS)], "shot": shot, "sfx": sfx,
                "seed": base_seed + n * 7, "prompt": prompt, "negative": image.NEG + (", " + sty["negative"] if sty["negative"] else ""), "char_x": s.get("char_x", [.5, .35, .62, .5, .4, .55, .5][i % 7]), "char_scale": s.get("char_scale", 1.0)}
         if n in overrides:
             row["prompt"] = overrides[n]["prompt"]; row["prompt_override"] = True
@@ -183,7 +183,30 @@ def _move(name, p):
             "pan_left": (1.1, .05 - .1 * e, 0), "tilt_up": (1.1, 0, .05 - .1 * e)}[name]
 
 
-def render_clip(layers, move, dur, out, W, H, fps):
+FOOT_Y = .78   # actor feet height in the (1.25x) source frame: keeps feet inside the camera window
+
+
+def _draw_actors(canvas, actor, tt, dur, box, sw, sh, W, H):
+    sxs, sys_ = W / (box[2] - box[0]), H / (box[3] - box[1])
+    total = sh * .30 * actor["scale"]; unit_scr = total / rig.H_UNITS * sxs
+    gx, gy = sw * actor["x"], sh * FOOT_Y
+    acts = [(rig.ACTIONS.get(actor["action"], rig.idle)(tt, dur), actor["cloth"], actor["accent"], False)]
+    if actor.get("ghost"):
+        acts.insert(0, (rig.ghost_pose(tt, dur, actor["action"]), (255, 214, 120), (255, 243, 196), True))
+    for pose, cloth, accent, ghost in acts:
+        p = dict(rig.default_pose(), **pose)
+        fx = (gx + p["dx"] * total - box[0]) * sxs; fy = (gy - p["dy"] * total - box[1]) * sys_
+        ground = (gy - box[1]) * sys_
+        shw = 26 * unit_scr * p["shadow"] * max(.4, 1 - p["dy"] * .8); sh_im = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+        ImageDraw.Draw(sh_im).ellipse([fx - shw, ground - shw * .22, fx + shw, ground + shw * .22], fill=(0, 0, 0, 90 if not ghost else 25))
+        canvas.alpha_composite(sh_im)
+        im = rig.draw_rig(cloth, accent, p, tt, ghost)
+        size = max(8, int(rig.CS * unit_scr / rig.R)); im = im.resize((size, size), Image.BILINEAR)
+        px, py = fx - size * rig.PIV / rig.CS, fy - 60 * p["sy"] * unit_scr - size * rig.PIV / rig.CS
+        canvas.paste(im, (int(px), int(py)), im)
+
+
+def render_clip(layers, move, dur, out, W, H, fps, actor=None):
     """layers: list of (PIL RGBA at 1.25x render size, depth 0..1). Parallax: nearer layers move/zoom more."""
     frames = int(round(dur * fps))
     proc = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(fps), "-i", "-",
@@ -202,6 +225,8 @@ def render_clip(layers, move, dur, out, W, H, fps):
                 if kind == "char":
                     cy -= math.sin(tt * 2.2) * sh * .003   # breathing
                 box = (cx - cw / 2, cy - ch_ / 2, cx + cw / 2, cy + ch_ / 2)
+                if kind == "char" and actor:
+                    _draw_actors(canvas, actor, tt, dur, box, sw, sh, W, H); continue
                 fr = im.resize((W, H), Image.BILINEAR, box=box)
                 if canvas is None:
                     canvas = fr
@@ -221,7 +246,7 @@ def animation(pid, scenes=None):
     d = pdir(pid) / "scenes"; cache = util.jread(d / "clip_cache.json", {}); made = 0
     for i, s in enumerate(sb["scenes"]):
         n = s["n"]; clip = d / f"s{n:02d}.mp4"
-        k = util.key(s["camera"], round(tl["durations"][i], 3), W, H, fps, (d / f"s{n:02d}.png").stat().st_mtime_ns)
+        k = util.key(s["camera"], s.get("action"), s.get("char_x"), s.get("char_scale"), "rig2", round(tl["durations"][i], 3), W, H, fps, (d / f"s{n:02d}.png").stat().st_mtime_ns)
         if cache.get(str(n)) == k and clip.exists():
             continue
         names = [("sky", .0), ("far", .15), ("mid", .4), ("fog", .55), ("char", .75), ("near", 1.0)]
@@ -232,7 +257,13 @@ def animation(pid, scenes=None):
             # char layer should sit between mid/fog and near; reorder by painter order sky,far,mid,fog,char,near
         else:
             layers = [(Image.open(d / f"s{n:02d}.png").convert("RGBA"), .5, "flat")]   # diffusion image: camera move only
-        render_clip(layers, s["camera"], tl["durations"][i], clip, W, H, fps)
+        actor = None
+        if s.get("action") and s["show_character"]:
+            ch = characters.get(project(pid)["character_id"]) if project(pid)["character_id"] else None
+            col = (ch or {}).get("colors", {})
+            actor = {"x": s["char_x"], "scale": s.get("char_scale", 1.0), "action": s["action"], "ghost": "ghost" in (s.get("props") or []),
+                     "cloth": rig._hex(col.get("cloth", "#c8492f"), (200, 70, 50)), "accent": rig._hex(col.get("accent", "#f2c14e"), (240, 190, 80))}
+        render_clip(layers, s["camera"], tl["durations"][i], clip, W, H, fps, actor)
         cache[str(n)] = k; made += 1
     util.jwrite(d / "clip_cache.json", cache)
     return {"clips_rendered": made, "render_size": [W, H], "parallax": (d / "s01_sky.png").exists(), "total_seconds": round(tl["total"], 2)}
@@ -251,7 +282,7 @@ def subtitles(pid, scenes=None):
     ed = util.jread(pdir(pid) / "caption_edits.json", {})
     lines = [f"[Script Info]\nScriptType: v4.00+\nPlayResX: {o['width']}\nPlayResY: {o['height']}\nWrapStyle: 2\n",
              "[V4+ Styles]\nFormat: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding",
-             f"Style: Cap,{st['font']},{st['size']},&H0000E5FF,&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,6,2,2,80,80,520,1\n",
+             f"Style: Cap,{st['font']},{st['size']},&H0000E5FF,&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,6,2,8,80,80,300,1\n",
              "[Events]\nFormat: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text"]
     count = 0
     for i, s in enumerate(sb["scenes"]):
