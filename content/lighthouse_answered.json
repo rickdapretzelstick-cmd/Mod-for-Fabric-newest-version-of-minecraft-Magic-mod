@@ -24,50 +24,86 @@
       "narration": "For forty years, the lighthouse at Harrow Point has been dark. Last night, it blinked.",
       "visual": "tall lighthouse alone on a frozen sea at dusk, one red light glowing in the fog",
       "mood": "dusk",
-      "terrain": "mountains",
-      "show_character": false
+      "terrain": "sea",
+      "show_character": false,
+      "props": [
+        "lighthouse_red"
+      ]
     },
     {
       "narration": "Nell rowed out across the ice alone, because the light was blinking in her mother's code.",
       "visual": "small figure in a red hooded coat walking across ice toward a distant lighthouse, holding a lantern",
       "mood": "dusk",
-      "terrain": "mountains",
-      "show_character": true
+      "terrain": "sea",
+      "show_character": true,
+      "props": [
+        "lighthouse_far"
+      ],
+      "char_x": 0.3,
+      "char_scale": 0.75
     },
     {
       "narration": "Inside, every step upward matched a name carved into the wall. Hers was waiting at the top.",
       "visual": "figure in a red hooded coat climbing a spiral staircase, warm lantern light",
       "mood": "ember",
-      "terrain": "city",
-      "show_character": true
+      "terrain": "interior",
+      "show_character": true,
+      "props": [
+        "stairs"
+      ],
+      "char_x": 0.62,
+      "char_scale": 0.9
     },
     {
       "narration": "In the lamp room, the ancient lens turned by itself, and the fog began to pull back.",
       "visual": "glowing lighthouse lamp with golden light beams, figure in a red hooded coat in silhouette",
       "mood": "ember",
-      "terrain": "city",
-      "show_character": true
+      "terrain": "sea",
+      "show_character": true,
+      "props": [
+        "lamp"
+      ],
+      "char_x": 0.5,
+      "char_scale": 1.15
     },
     {
       "narration": "Beneath the ice, thousands of lights blinked awake. Ships, lost for decades, waiting to be seen.",
       "visual": "frozen sea at night with many small glowing lights beneath the ice, one lighthouse beam above",
       "mood": "night",
-      "terrain": "mountains",
-      "show_character": false
+      "terrain": "sea",
+      "show_character": false,
+      "props": [
+        "lights",
+        "lighthouse",
+        "beam"
+      ],
+      "lh_x": 0.8,
+      "lh_h": 0.3
     },
     {
       "narration": "Her mother never vanished. She kept the light burning, so the lost could find their way home.",
       "visual": "figure in a red hooded coat standing quietly, a faint golden glow of a second figure beside her",
       "mood": "dawn",
-      "terrain": "city",
-      "show_character": true
+      "terrain": "sea",
+      "show_character": true,
+      "props": [
+        "ghost"
+      ],
+      "char_x": 0.4,
+      "char_scale": 1.2
     },
     {
       "narration": "Now Nell lights it every night. And every night, someone comes home.",
       "visual": "lighthouse at sunrise with warm light, small boats on calm water",
       "mood": "dawn",
-      "terrain": "mountains",
-      "show_character": false
+      "terrain": "sea",
+      "show_character": false,
+      "props": [
+        "lighthouse",
+        "boats"
+      ],
+      "lh_x": 0.25,
+      "lh_h": 0.36
     }
   ]
 }

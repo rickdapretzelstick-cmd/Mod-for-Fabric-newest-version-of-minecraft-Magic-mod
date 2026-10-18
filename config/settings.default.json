@@ -28,7 +28,7 @@
     "timeout_s": 300
   },
   "image": {
-    "backend": "auto",
+    "backend": "procedural",
     "comfyui_url": "http://127.0.0.1:8188",
     "checkpoint": "v1-5-pruned-emaonly.safetensors",
     "gen_w": 512,
@@ -47,7 +47,7 @@
       "h": 768,
       "cache_dir": "models/hf"
     },
-    "style": "minimal",
+    "style": "shapes",
     "styles": {
       "minimal": {
         "prefix": "minimal flat illustration, simple shapes, bold clean silhouette, limited color palette, soft gradient background, uncluttered, lots of negative space",

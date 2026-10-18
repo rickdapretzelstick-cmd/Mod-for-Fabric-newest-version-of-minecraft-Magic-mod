@@ -129,6 +129,27 @@ def paint_layers(spec: dict, w: int, h: int, seed: int):
     if kind == "city":
         far, mid, near = (silhouette(_skyline(w, h, rng, h * .62, h * .16), .55), silhouette(_skyline(w, h, rng, h * .72, h * .2), .35, True),
                           silhouette(_skyline(w, h, rng, h * .86, h * .12), .15))
+    elif kind == "interior":    # dark stone room: brick courses + an arched window, no sky objects
+        empty = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        sky = _grad(w, h, [(26, 18, 24), (52, 34, 40), (92, 58, 52)]).convert("RGBA"); sd = ImageDraw.Draw(sky)
+        for r in range(0, h, h // 16):
+            sd.line([0, r, w, r], fill=(20, 14, 18, 150), width=2)
+            for c in range((r // (h // 16)) % 2 * (w // 12), w, w // 6):
+                sd.line([c, r, c, r + h // 16], fill=(20, 14, 18, 150), width=2)
+        sd.rounded_rectangle([w * .62, h * .12, w * .9, h * .42], radius=int(w * .14), fill=(30, 40, 84, 255), outline=(14, 10, 14, 255), width=int(w * .02))
+        far = mid = near = empty
+    elif kind == "sea":
+        def sea_layer(top, shade):
+            img = Image.new("RGBA", (w, h), (0, 0, 0, 0)); dr = ImageDraw.Draw(img)
+            col = tuple(int(c * shade) for c in pal[1]) + (255,)
+            dr.rectangle([0, int(top), w, h], fill=col)
+            for _ in range(14):   # ice floes / wave glints
+                x, y = rng.randint(0, w), rng.randint(int(top) + 8, h)
+                fw = rng.randint(w // 10, w // 4); dr.polygon([(x, y), (x + fw, y), (x + fw * .85, y + h * .012), (x + fw * .1, y + h * .012)], fill=tuple(min(255, int(c * (shade + .5))) for c in pal[1]) + (200,))
+            return img
+        far = silhouette(_ridge(w, h, rng, h * .66, h * .015, 1.0), .6)
+        mid = sea_layer(h * .68, .9)
+        near = silhouette(_ridge(w, h, rng, h * .96, h * .02, .8), .12)
     elif kind == "forest":
         def trees(base, sh):
             t = _ridge(w, h, rng, base, h * .05, 1.2)
@@ -150,7 +171,71 @@ def paint_layers(spec: dict, w: int, h: int, seed: int):
     char = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     if spec.get("show_character", True):
         _draw_character(char, spec, w, h, rng)
+    _props(spec, pal, w, h, rng, mid, fog, char)
     return {"sky": sky, "far": far, "mid": mid, "near": near, "fog": fog, "char": char}
+
+
+def _glow(layer, cx, cy, r, color, alpha=200, blur=None):
+    g = Image.new("RGBA", layer.size, (0, 0, 0, 0))
+    ImageDraw.Draw(g).ellipse([cx - r, cy - r, cx + r, cy + r], fill=tuple(color) + (alpha,))
+    layer.alpha_composite(g.filter(ImageFilter.GaussianBlur(blur or max(2, r // 2))))
+
+
+def _lighthouse(layer, fogl, cx, base, ht, w, lit=True, red=False):
+    d = ImageDraw.Draw(layer); bw = ht * .16; tw = bw * .6
+    d.polygon([(cx - bw, base), (cx + bw, base), (cx + tw, base - ht), (cx - tw, base - ht)], fill=(226, 224, 232, 255))
+    for i in range(1, 4):   # red bands
+        y0 = base - ht * (i * .26); y1 = y0 - ht * .1; k0 = bw - (bw - tw) * (base - y0) / ht; k1 = bw - (bw - tw) * (base - y1) / ht
+        d.polygon([(cx - k0, y0), (cx + k0, y0), (cx + k1, y1), (cx - k1, y1)], fill=(196, 52, 48, 255))
+    d.rectangle([cx - tw * 1.25, base - ht - ht * .06, cx + tw * 1.25, base - ht], fill=(40, 36, 50, 255))
+    d.polygon([(cx - tw * 1.4, base - ht - ht * .06), (cx + tw * 1.4, base - ht - ht * .06), (cx, base - ht - ht * .2)], fill=(196, 52, 48, 255))
+    lamp = (255, 90, 70) if red else (255, 224, 140)
+    if lit:
+        _glow(fogl, cx, base - ht - ht * .03, int(ht * .12), lamp, 230)
+        d.rectangle([cx - tw * .7, base - ht - ht * .05, cx + tw * .7, base - ht - ht * .01], fill=lamp + (255,))
+
+
+def _props(spec, pal, w, h, rng, mid, fogl, char):
+    props = spec.get("props") or []
+    d = ImageDraw.Draw(mid); gold = (255, 214, 120)
+    if "lighthouse" in props or "lighthouse_red" in props:
+        _lighthouse(mid, fogl, int(w * spec.get("lh_x", .68)), int(h * .7), int(h * spec.get("lh_h", .42)), w, red="lighthouse_red" in props)
+    if "lighthouse_far" in props:
+        _lighthouse(mid, fogl, int(w * .75), int(h * .67), int(h * .2), w)
+    if "beam" in props:
+        bx, by = int(w * spec.get("lh_x", .68)), int(h * (.7 - spec.get("lh_h", .42)))
+        b = Image.new("RGBA", fogl.size, (0, 0, 0, 0))
+        ImageDraw.Draw(b).polygon([(bx, by), (0, by - h * .1), (0, by + h * .12)], fill=gold + (70,)); fogl.alpha_composite(b.filter(ImageFilter.GaussianBlur(8)))
+    if "lamp" in props:    # giant glowing lens with rays
+        cx, cy = int(w * .5), int(h * .36)
+        for ang in range(0, 360, 20):
+            a = math.radians(ang); b = Image.new("RGBA", fogl.size, (0, 0, 0, 0))
+            ImageDraw.Draw(b).polygon([(cx, cy), (cx + math.cos(a - .06) * w, cy + math.sin(a - .06) * w), (cx + math.cos(a + .06) * w, cy + math.sin(a + .06) * w)], fill=gold + (38,))
+            fogl.alpha_composite(b.filter(ImageFilter.GaussianBlur(4)))
+        _glow(fogl, cx, cy, int(w * .2), gold, 235, int(w * .08)); d.ellipse([cx - w * .11, cy - w * .11, cx + w * .11, cy + w * .11], outline=(60, 44, 40, 255), width=int(w * .014))
+    if "lights" in props:   # many small glows under the ice
+        for _ in range(46):
+            x, y = rng.randint(0, w), rng.randint(int(h * .72), int(h * .95))
+            _glow(fogl, x, y, rng.randint(3, 7), rng.choice([gold, (150, 220, 255), (255, 170, 120)]), 230, 4)
+    if "boats" in props:
+        for i in range(5):
+            x, y, sz = int(w * (.12 + i * .19)), int(h * (.72 + rng.uniform(0, .05))), int(h * rng.uniform(.04, .07))
+            d.polygon([(x - sz, y), (x + sz, y), (x + sz * .6, y + sz * .35), (x - sz * .6, y + sz * .35)], fill=(34, 26, 38, 255))
+            d.polygon([(x, y - sz * 1.6), (x, y - sz * .1), (x + sz * .8, y - sz * .1)], fill=(246, 232, 210, 255))
+    if "stairs" in props:
+        for i in range(9):
+            x0 = w * (.12 + i * .09); y0 = h * (.86 - i * .075)
+            d.rectangle([x0, y0, x0 + w * .22, y0 + h * .03], fill=(72, 52, 58, 255))
+        for _ in range(26):
+            x, y = rng.randint(int(w * .05), int(w * .95)), rng.randint(int(h * .1), int(h * .8))
+            d.rectangle([x, y, x + w * .05, y + 3], fill=(120, 96, 100, 160))
+        _glow(fogl, int(w * .2), int(h * .5), int(w * .2), gold, 120)
+    if "ghost" in props:    # golden second figure beside the hero, translucent
+        gh = Image.new("RGBA", char.size, (0, 0, 0, 0))
+        _draw_character(gh, dict(spec, cloth_color="#ffd778", accent_color="#fff3c4", char_x=spec.get("char_x", .5) + .26, char_scale=1.05), w, h, rng)
+        a = gh.split()[3].point(lambda v: int(v * .55)); gh.putalpha(a)
+        char.alpha_composite(gh.filter(ImageFilter.GaussianBlur(3)))
+        _glow(fogl, int(w * (spec.get("char_x", .5) + .26)), int(h * .75), int(w * .22), gold, 80, int(w * .08))
 
 
 def _hex(c, default):
