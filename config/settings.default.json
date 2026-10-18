@@ -1,16 +1,78 @@
 {
   "quality": "draft",
   "quality_presets": {
-    "draft": {"render_w": 540, "render_h": 960, "fps": 30, "note": "rendered at 540x960, upscaled to 1080x1920 on final encode"},
-    "final": {"render_w": 1080, "render_h": 1920, "fps": 30, "note": "native 1080x1920 compositing"}
+    "draft": {
+      "render_w": 540,
+      "render_h": 960,
+      "fps": 30,
+      "note": "rendered at 540x960, upscaled to 1080x1920 on final encode"
+    },
+    "final": {
+      "render_w": 1080,
+      "render_h": 1920,
+      "fps": 30,
+      "note": "native 1080x1920 compositing"
+    }
   },
-  "output": {"width": 1080, "height": 1920, "fps": 30, "min_seconds": 28, "max_seconds": 47},
-  "llm": {"backend": "auto", "ollama_url": "http://127.0.0.1:11434", "model": "qwen2.5:7b-instruct-q4_K_M", "timeout_s": 300},
-  "image": {"backend": "auto", "comfyui_url": "http://127.0.0.1:8188", "checkpoint": "v1-5-pruned-emaonly.safetensors", "gen_w": 512, "gen_h": 768, "steps": 22, "cfg": 7.0, "sampler": "dpmpp_2m", "scheduler": "karras", "timeout_s": 600},
-  "tts": {"backend": "auto", "piper_exe": "piper", "piper_model": "models/piper/en_US-lessac-medium.onnx", "speed": 1.0},
-  "jobs": {"max_attempts": 3, "stage_timeout_s": 1800, "min_free_disk_gb": 5, "poll_s": 2},
-  "queue": {"max_pending_approval": 5, "idea_min_score": 6.0},
-  "cost": {"gpu_watts": 250, "system_watts": 120, "usd_per_kwh": 0.15},
-  "publish": {"default_visibility": "private", "category_id": "24", "synthetic_content_disclosure": true},
-  "server": {"host": "127.0.0.1", "port": 8765}
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "min_seconds": 28,
+    "max_seconds": 47
+  },
+  "llm": {
+    "backend": "auto",
+    "ollama_url": "http://127.0.0.1:11434",
+    "model": "qwen2.5:7b-instruct-q4_K_M",
+    "timeout_s": 300
+  },
+  "image": {
+    "backend": "auto",
+    "comfyui_url": "http://127.0.0.1:8188",
+    "checkpoint": "v1-5-pruned-emaonly.safetensors",
+    "gen_w": 512,
+    "gen_h": 768,
+    "steps": 22,
+    "cfg": 7.0,
+    "sampler": "dpmpp_2m",
+    "scheduler": "karras",
+    "timeout_s": 600
+  },
+  "tts": {
+    "backend": "auto",
+    "piper_exe": "piper",
+    "piper_model": "models/piper/en_US-lessac-medium.onnx",
+    "speed": 1.0
+  },
+  "jobs": {
+    "max_attempts": 3,
+    "stage_timeout_s": 1800,
+    "min_free_disk_gb": 5,
+    "poll_s": 2
+  },
+  "queue": {
+    "max_pending_approval": 5,
+    "idea_min_score": 6.0
+  },
+  "cost": {
+    "gpu_watts": 250,
+    "system_watts": 120,
+    "usd_per_kwh": 0.15
+  },
+  "publish": {
+    "default_visibility": "private",
+    "category_id": "24",
+    "synthetic_content_disclosure": true,
+    "allow_public": false
+  },
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8765
+  },
+  "captions": {
+    "font": "Arial",
+    "size": 86,
+    "chunk_words": 3
+  }
 }

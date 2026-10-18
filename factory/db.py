@@ -108,3 +108,12 @@ def kv_set(k, v):
 def log_error(project_id, stage, message):
     run("INSERT INTO errors(project_id,stage,message,created_at) VALUES(?,?,?,?)",
         (project_id, stage, str(message)[:4000], time.time()))
+
+
+def run_count(sql, args=()):
+    """Execute and return the number of rows changed (used for atomic claims)."""
+    c = connect()
+    try:
+        return c.execute(sql, args).rowcount
+    finally:
+        c.close()
