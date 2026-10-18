@@ -23,7 +23,8 @@ This was built and tested in a **Linux sandbox with no GPU**, not on your Window
 | Job timeouts, retry limits, failure recording | **Tested** (retry limit); timeout path written, not separately exercised |
 | Orphaned-subprocess cleanup after a hard crash | Written, **not exercised** |
 | n8n workflows A–D import and execute against the live server | **Tested** with n8n 1.68 (A, B, D executed; C imported) |
-| React/TypeScript dashboard builds and is served on localhost | **Built & served**; not clicked through in a real browser by me |
+| React/TypeScript dashboard builds, is served on localhost, and the Reject button works from the real UI (Chromium, no JS errors) | **Tested**. In-browser *video playback* not verified (the sandbox Chromium has no H.264 decoder; Chrome/Edge on Windows do). Approve/Revise buttons were exercised via the API, not clicked |
+| Known cosmetic issue | Thumbnail frame can include burned-in caption text; template titles read awkwardly |
 | **Ollama LLM** (idea/script quality) | **Untested** — code path written; fallback is a formulaic template writer |
 | **ComfyUI / Stable Diffusion 1.5 images** | **Untested** — workflow graph written, never executed |
 | Windows scripts (`setup_windows.ps1`, `start_factory.bat`) | **Untested** |
