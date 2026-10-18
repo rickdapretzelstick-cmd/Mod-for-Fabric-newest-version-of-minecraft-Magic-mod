@@ -66,8 +66,10 @@ def revise(pid, scope, scenes=None, edits=None, notes=""):
         sb = util.jread(d / "storyboard.json")
         if scope == "scenes":
             for s in sb["scenes"]:
-                if s["n"] in scenes and str(s["n"]) in edits:
-                    s["prompt"] = edits[str(s["n"])]; s["prompt_override"] = True; s["seed"] += 1000   # new seed for a new take
+                if s["n"] in scenes:
+                    s["seed"] = s.get("seed", 0) + 1000          # new seed = new take, even with no prompt change
+                    if str(s["n"]) in edits:
+                        s["prompt"] = edits[str(s["n"])]; s["prompt_override"] = True
             util.jwrite(d / "storyboard.json", sb)
         elif scope == "narration":
             sc = util.jread(d / "script.json")
